@@ -12,7 +12,8 @@ pkgs.mkShell {
         # select Python packages here
         venvShellHook
         pytest
-        requests
+        requests # API requests
+        responses # Mock requests
         termgraph
       ]
     ))
