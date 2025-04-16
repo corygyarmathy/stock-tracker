@@ -34,7 +34,9 @@ def write_json_to_file(data: dict[Any, Any], filename: str) -> None:
         print(f"Error writing to file '{filename}': {e}")
 
 
-def get_stock_price(symbol: str) -> tuple[float | None, str | None]:
+def get_stock_price(
+    symbol: str, exchange: str | None = None
+) -> tuple[float | None, str | None]:
     """
     Retrieves the latest stock price for a given symbol using the Alpha Vantage API.
     Returns a tuple: (price: float or None, error: str or None).
@@ -43,17 +45,22 @@ def get_stock_price(symbol: str) -> tuple[float | None, str | None]:
     # TODO: Ensure can hangle stocks with the same ticker, that are listed in different exchanges
     if not keys.ALPHAVANTAGE_API_KEY:
         raise ValueError("Please set the ALPHAVANTAGE_API_KEY environment variable.")
-
+    if exchange:
+        formatted_symbol: str = f"{symbol}.{exchange}"
+    else:
+        formatted_symbol: str = symbol
+    print(f"Formatted symbol: {formatted_symbol}")
     base_url = "https://www.alphavantage.co/query"
     params: dict[str, str] = {
         "function": "GLOBAL_QUOTE",
-        "symbol": symbol,
+        "symbol": formatted_symbol,
         "apikey": keys.ALPHAVANTAGE_API_KEY,
     }
     try:
         response: requests.Response = requests.get(url=base_url, params=params)
         response.raise_for_status()  # Raise an exception for bad status codes
         data: dict[str, Any] = response.json()
+        write_json_to_file(data, "data.json")
         if "Global Quote" in data and "05. price" in data["Global Quote"]:
             return float(data["Global Quote"]["05. price"]), None
         else:
