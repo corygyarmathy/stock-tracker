@@ -6,12 +6,12 @@ from main import get_stock_price
 
 class TestAPI(unittest.TestCase):
     @responses.activate
-    def test_get_stock_price_success():
+    def test_get_stock_price_success(self) -> None:
         """
         Tests the get_stock_price function with a successful API response.
         """
         symbol = "AAPL"
-        mock_response_data = {
+        mock_response_data: dict[str, dict[str, str]] = {
             "Global Quote": {
                 "01. symbol": "AAPL",
                 "02. open": "170.3000",
@@ -38,12 +38,12 @@ class TestAPI(unittest.TestCase):
         assert price == 170.12
 
     @responses.activate
-    def test_get_stock_price_not_found():
+    def test_get_stock_price_not_found(self) -> None:
         """
         Tests the get_stock_price function when the symbol is not found.
         """
         symbol = "INVALID"
-        mock_response_data = {
+        mock_response_data: dict[str, str] = {
             "Error Message": "Invalid API call. Please retry or visit the documentation (https://www.alphavantage.co/documentation/)."
         }
 
@@ -62,7 +62,7 @@ class TestAPI(unittest.TestCase):
             assert False, "Expected an error message but got None"
 
     @responses.activate
-    def test_get_stock_price_api_error():
+    def test_get_stock_price_api_error(self) -> None:
         """
         Tests the get_stock_price function when the API returns an error status.
         """
