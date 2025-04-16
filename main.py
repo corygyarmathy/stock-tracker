@@ -78,20 +78,26 @@ def get_stock_price(
 
 
 def main() -> None:
-    orders = parse_orders("orders.csv")
+    orders: list[dict[str, str]] = parse_orders(csv_path="orders.csv")
     for order in orders:
-        price, error = get_stock_price(order["ticker"])
-        if not error:
-            print(f"{order['ticker']}: price: {price}")
-        else:
-            print(f"Error: {error}")
+        print(f"Processing order: {order['ticker']}")
+        print(f"Quantity purchased: {order['quantity']}")
+        print(f"Purchase price: {order['price_paid']}")
+        print(f"Purchase date: {order['date']}")
+        print(f"Exchange: {order['exchange']}")
+        current_price, error = get_stock_price(
+            symbol=order["ticker"], exchange=order["exchange"]
+        )
+        if not current_price:
+            print(f"Error retrieving price: {error}")
+            continue
+
+        print(f"Current price: {current_price}")
+        capital_gain: float = calculate_order_capital_gains(order, current_price)
+        print(f"Capital Gains: {round(capital_gain, 2)}")
+        print()
 
     print("Complete!")
-
-
-# current_price = get_current_price(order["ticker"])
-# gain = calculate_gains(order, current_price)
-# print(f"{order['ticker']}: {gain}")
 
 
 if __name__ == "__main__":
