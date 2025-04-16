@@ -12,7 +12,7 @@ pkgs.mkShell {
         # select Python packages here
         venvShellHook
         pytest
-        yfinance
+        requests
         termgraph
       ]
     ))
