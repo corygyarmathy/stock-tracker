@@ -1,12 +1,10 @@
 # Import libraries
 import csv
 from typing import Any
-import requests
+import yfinance as yf
 import json
-from datetime import datetime
 
-from requests.exceptions import RequestException
-import keys
+from API import CachedLimiterSession, get_yfinance_session
 
 
 def parse_orders(csv_path: str) -> list[dict[str, str]]:
@@ -35,7 +33,7 @@ def write_json_to_file(data: dict[Any, Any], filename: str) -> None:
 
 
 def get_stock_price(
-    symbol: str, exchange: str | None = None
+    ticker: str, exchange: str | None = None
 ) -> tuple[float | None, str | None]:
     """
     Retrieves the latest stock price for a given symbol using the Alpha Vantage API.
@@ -43,32 +41,19 @@ def get_stock_price(
     """
     # TODO: Specify the currency, and convert it if necessary
     # TODO: Ensure can hangle stocks with the same ticker, that are listed in different exchanges
-    if not keys.ALPHAVANTAGE_API_KEY:
-        raise ValueError("Please set the ALPHAVANTAGE_API_KEY environment variable.")
-    if exchange:
-        formatted_symbol: str = f"{symbol}.{exchange}"
-    else:
-        formatted_symbol: str = symbol
-    print(f"Formatted symbol: {formatted_symbol}")
-    base_url = "https://www.alphavantage.co/query"
-    params: dict[str, str] = {
-        "function": "GLOBAL_QUOTE",
-        "symbol": formatted_symbol,
-        "apikey": keys.ALPHAVANTAGE_API_KEY,
-    }
     try:
-        response: requests.Response = requests.get(url=base_url, params=params)
-        response.raise_for_status()  # Raise an exception for bad status codes
-        data: dict[str, Any] = response.json()
-        write_json_to_file(data, "data.json")
-        if "Global Quote" in data and "05. price" in data["Global Quote"]:
-            return float(data["Global Quote"]["05. price"]), None
+        session: CachedLimiterSession = get_yfinance_session()
+        data: yf.Ticker = yf.Ticker(ticker, session)
+        if data.fast_info["last_price"]:
+            price: float = float(data.fast_info["last_price"])
+            return price, None
         else:
-            return None, f"Could not retrieve price for {symbol}. Response: {data}"
-    except requests.exceptions.RequestException as e:
-        return None, f"Error during API request: {e}"
-    except json.JSONDecodeError:
-        return None, "Error decoding JSON response."
+            return (
+                None,
+                f"Could not retrieve price for {ticker} at {exchange}. Retrieved: {data}",
+            )
+    except Exception as e:
+        return None, f"Error retrieving price for {ticker} at {exchange}. Error: {e}"
 
 
 def calculate_order_capital_gains(order: dict[str, str], current_price: float) -> float:
@@ -89,13 +74,13 @@ def main() -> None:
         print(f"Purchase date: {order['date']}")
         print(f"Exchange: {order['exchange']}")
         current_price, error = get_stock_price(
-            symbol=order["ticker"], exchange=order["exchange"]
+            ticker=order["ticker"], exchange=order["exchange"]
         )
         if not current_price:
-            print(f"Error retrieving price: {error}")
+            print(f"{error}")
             continue
 
-        print(f"Current price: {current_price}")
+        print(f"Current price: {round(current_price, 2)}")
         capital_gain: float = calculate_order_capital_gains(order, current_price)
         print(f"Capital Gains: {round(capital_gain, 2)}")
         print()

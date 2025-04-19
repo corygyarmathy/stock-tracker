@@ -12,9 +12,15 @@ pkgs.mkShell {
         # select Python packages here
         venvShellHook
         pytest
+        yfinance
         requests # API requests
+        requests-cache
+        requests-ratelimiter
+        pyrate-limiter
         responses # Mock requests
         termgraph
+        pytest-mock
+
       ]
     ))
   ];
