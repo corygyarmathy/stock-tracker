@@ -20,6 +20,8 @@ pkgs.mkShell {
         responses # Mock requests
         termgraph
         pytest-mock
+        pandas
+        pandas-stubs
 
       ]
     ))
