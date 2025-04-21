@@ -6,6 +6,7 @@ __pycache__/
 
 keys.py
 yfinance.cache
+*.db
 
 #nix
 .direnv/
