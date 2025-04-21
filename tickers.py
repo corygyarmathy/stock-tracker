@@ -1,5 +1,6 @@
 # pyright: ignore[reportUnsafeMultipleInheritance, reportIncompatibleMethodOverride]
 import logging
+from typing import Any
 import yfinance as yf
 import pandas as pd
 from requests import Session
@@ -48,17 +49,17 @@ def is_valid_ticker(ticker: str, exchange: str, session: CachedLimiterSession) -
     full_symbol: str = f"{ticker}.{exchange}"
     try:
         info: FastInfo = yf.Ticker(full_symbol, session).fast_info
-        price = info["last_price"]
+        price: float | None = info["last_price"]
         logger.debug(f"{full_symbol}: last_price = {price}")
         return isinstance(price, (float)) and price > 0
     except Exception as e:
-        logger.error(f"Failed to validate {full_symbol}: {e}")
+        logger.error(f"Failed to validate ticker: {full_symbol}. Error: {e}")
         return False
 
 
-def search_ticker(ticker: str, session: CachedLimiterSession) -> yf.Search:
-    # TODO: only return list / dict of stock tickers and corresponding exchanges
-
+def search_ticker_quotes(
+    ticker: str, session: CachedLimiterSession
+) -> list[dict[str, Any]]:
     # Example return of search['quotes']
     # 'exchange' str = 'BTS'
     # 'shortname' str = 'iShares Trust iShares S&P 500 B'
@@ -71,9 +72,43 @@ def search_ticker(ticker: str, session: CachedLimiterSession) -> yf.Search:
     # 'exchDisp' str = 'BATS Trading'
     # 'isYahooFinance' bool = True
 
-    return yf.Search(
-        ticker, max_results=8, news_count=0, lists_count=0, session=session
-    )
+    try:
+        result = yf.Search(
+            ticker, max_results=20, news_count=0, lists_count=0, session=session
+        )
+        return result.quotes
+    except Exception as e:
+        logger.error(f"Search failed for {ticker}: {e}")
+        return []
+
+
+def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | None:
+    if not results:
+        print("No alternatives found.")
+        return None
+
+    print("\nPotential matches:")
+    for idx, item in enumerate(results, 1):
+        name: str = item.get("shortname", item.get("longname", ""))
+        exchange: str = item.get("exchange", "N/A")
+        symbol: str = item.get("symbol", "N/A")
+        quote_type: str = item.get("quoteType", "")
+        print(f"{idx}. {symbol} ({name}) — {exchange}, {quote_type}")
+
+    while True:
+        try:
+            choice = input(
+                "Enter the number of the correct symbol (or press Enter to skip): "
+            ).strip()
+            if not choice:
+                return None
+            choice = int(choice)
+            if 1 <= choice <= len(results):
+                return results[choice - 1]
+            else:
+                print(f"Please enter a number between 1 and {len(results)}.")
+        except ValueError:
+            print("Invalid input. Enter a number.")
 
 
 def import_valid_tickers(csv_path: str, db_path: str, session: CachedLimiterSession):
@@ -90,7 +125,21 @@ def import_valid_tickers(csv_path: str, db_path: str, session: CachedLimiterSess
             if save_ticker(db_path, ticker, exchange, full_symbol):
                 inserted += 1
                 logger.info(f"Inserted {full_symbol}")
-        else:
-            logger.warning(f"Invalid ticker: {full_symbol}")
+            continue
 
-    logger.info(f"Imported {inserted} tickers from {csv_path}")
+        logger.warning(f"Invalid ticker: {full_symbol}. Searching for alternatives...")
+        results = search_ticker_quotes(ticker, session)
+        match = prompt_user_to_select(results)
+
+        if match:
+            symbol = match["symbol"]
+            exch = match.get("exchange", "N/A")
+            logger.info(f"User selected: {symbol} on {exch}")
+
+            if save_ticker(db_path, symbol, exch, f"{symbol}.{exch}"):
+                inserted += 1
+                logger.info(f"Inserted corrected: {symbol}.{exch}")
+        else:
+            logger.warning(f"Skipped: {ticker}.{exchange}")
+
+    logger.info(f"✅ Imported {inserted} tickers from {csv_path}")
