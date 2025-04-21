@@ -87,7 +87,20 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
         print("No alternatives found.")
         return None
 
+    # Define column widths
+    col_widths = {"index": 4, "symbol": 12, "exchange": 10, "type": 8, "name": 40}
+
+    header = (
+        f"{'No.':<{col_widths['index']}} "
+        f"{'Symbol':<{col_widths['symbol']}} "
+        f"{'Exchange':<{col_widths['exchange']}} "
+        f"{'Type':<{col_widths['type']}} "
+        f"{'Name':<{col_widths['name']}}"
+    )
     print("\nPotential matches:")
+    print(header)
+    print("-" * len(header))
+
     for idx, item in enumerate(results, 1):
         symbol = str(item.get("symbol", ""))[: col_widths["symbol"]]
         exchange = str(item.get("exchange", ""))[: col_widths["exchange"]]
@@ -96,6 +109,14 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
             : col_widths["name"]
         ]
 
+        info = (
+            f"{str(idx):<{col_widths['index']}} "
+            f"{symbol:<{col_widths['symbol']}} "
+            f"{exchange:<{col_widths['exchange']}} "
+            f"{quote_type:<{col_widths['type']}} "
+            f"{name:<{col_widths['name']}}"
+        )
+        print(info)
 
     while True:
         try:
