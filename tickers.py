@@ -89,11 +89,13 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
 
     print("\nPotential matches:")
     for idx, item in enumerate(results, 1):
-        name: str = item.get("shortname", item.get("longname", ""))
-        exchange: str = item.get("exchange", "N/A")
-        symbol: str = item.get("symbol", "N/A")
-        quote_type: str = item.get("quoteType", "")
-        print(f"{idx}. {symbol} ({name}) — {exchange}, {quote_type}")
+        symbol = str(item.get("symbol", ""))[: col_widths["symbol"]]
+        exchange = str(item.get("exchange", ""))[: col_widths["exchange"]]
+        quote_type = str(item.get("quoteType", ""))[: col_widths["type"]]
+        name = str(item.get("shortname") or item.get("longname", ""))[
+            : col_widths["name"]
+        ]
+
 
     while True:
         try:
@@ -142,4 +144,4 @@ def import_valid_tickers(csv_path: str, db_path: str, session: CachedLimiterSess
         else:
             logger.warning(f"Skipped: {ticker}.{exchange}")
 
-    logger.info(f"✅ Imported {inserted} tickers from {csv_path}")
+    logger.info(f"Imported {inserted} tickers from {csv_path}")
