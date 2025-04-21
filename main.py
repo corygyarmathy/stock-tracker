@@ -9,10 +9,7 @@ from tickers import import_valid_tickers
 from utils import setup_logging
 from tickers import (
     CachedLimiterSession,
-    # get_symbol_for_exchange,
     get_yfinance_session,
-    is_valid_ticker,
-    search_ticker,
 )
 
 
@@ -159,15 +156,23 @@ if __name__ == "__main__":
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description="Import tickers from CSV and validate with yfinance."
     )
+
     _ = parser.add_argument(
-        "csv_path", help="Path to input CSV file (must have 'ticker' and 'exchange')"
+        "--csv-path",
+        default="import.csv",
+        help="Path to input CSV file (default: import.csv)",
     )
-    _ = parser.add_argument("db_path", help="Path to SQLite DB")
+    _ = parser.add_argument(
+        "--db-path",
+        default="tickers.db",
+        help="Path to SQLite DB (default: tickers.db)",
+    )
     _ = parser.add_argument(
         "--log-config",
         default="logging_config.yaml",
-        help="Path to logging config YAML",
+        help="Path to logging config YAML file (default: logging_config.yaml)",
     )
+
     args: argparse.Namespace = parser.parse_args()
 
-    _ = main(args)
+    main(args)
