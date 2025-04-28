@@ -4,7 +4,7 @@ let
 in
 pkgs.mkShell {
   name = "impureVenv";
-  venvDir = "./.venv";
+  # venvDir = "./.venv";
   buildInputs = with pkgs; [
     python3
     (pkgs.python3.withPackages (
@@ -12,6 +12,7 @@ pkgs.mkShell {
         # select Python packages here
         venvShellHook
         pytest
+        python-dotenv
         yfinance
         requests # API requests
         requests-cache
@@ -23,15 +24,17 @@ pkgs.mkShell {
         pandas
         pandas-stubs
 
+        pip
+        setuptools
+        wheel
       ]
     ))
   ];
-  # postVenvCreation = ''
-  #   if [ -f ./requirements.txt]; then
-  #     pip install -r ${./requirements.txt}
-  #   fi
-  # '';
   shellHook = ''
-    venvShellHook
+    # Setup python-dotenv
+    export PYTHON_DOTENV_LOAD_ALL=1  # Enable loading all variables from .env
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$out/lib  # Ensure libraries are found
+    export PYTHONPATH="${toString ./stock_tracker}:$PYTHONPATH"
+    echo "🐍 Python dev shell ready"
   '';
 }
