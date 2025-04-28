@@ -1,0 +1,19 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stock-tracker"
+version = "0.1.0"
+dependencies = [
+  "yfinance",
+  "pytest",
+  "pytest-mock",
+  # add any others you use
+]
+
+[tool.pyright]
+"extraPaths" = [
+  "./stock_tracker", # Ensure Pyright can find the path to your local package
+]
