@@ -36,6 +36,7 @@ class Database:
         self.logger.debug(f"Preparing SQL execution:\n{query}")
         self.logger.debug(f"Parameters: {params}")
 
+        # Confirm positional and named-placeholders are not being inter-mixed
         if "?" in query and isinstance(params, Mapping):
             raise ValueError("Positional placeholders (?) used with named parameters.")
         if ":" in query and isinstance(params, (list, tuple)):
