@@ -21,12 +21,17 @@ handlers:
     mode: a
 
 loggers:
-  ticker_importer.tickers:
+  tickers:
     level: DEBUG
     handlers: [console, file]
     propagate: no
 
-  ticker_importer.db:
+  db:
+    level: DEBUG
+    handlers: [console, file]
+    propagate: no
+
+  refresh_splits:
     level: DEBUG
     handlers: [console, file]
     propagate: no
