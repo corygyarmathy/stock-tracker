@@ -220,7 +220,6 @@ class Database:
                 UNIQUE(ticker, exchange, order_date, order_type)
             )
         """)
-        self.commit()
 
 
 # def init_db(db: Database) -> None:
