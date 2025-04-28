@@ -159,18 +159,18 @@ if __name__ == "__main__":
 
     _ = parser.add_argument(
         "--csv-path",
-        default="import.csv",
-        help="Path to input CSV file (default: import.csv)",
+        default=DEFAULT_CSV_PATH,
+        help=f"Path to input CSV file (default: {DEFAULT_CSV_PATH})",
     )
     _ = parser.add_argument(
         "--db-path",
-        default="tickers.db",
-        help="Path to SQLite DB (default: tickers.db)",
+        default=DEFAULT_DB_PATH,
+        help=f"Path to SQLite DB (default: {DEFAULT_DB_PATH})",
     )
     _ = parser.add_argument(
         "--log-config",
-        default="logging_config.yaml",
-        help="Path to logging config YAML file (default: logging_config.yaml)",
+        default=DEFAULT_LOGGING_CONFIG_PATH,
+        help=f"Path to logging config YAML file (default: {DEFAULT_LOGGING_CONFIG_PATH})",
     )
 
     args: argparse.Namespace = parser.parse_args()
