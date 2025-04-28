@@ -73,10 +73,41 @@ class Database:
         self.logger.debug(f"Preparing bulk execution of SQL:\n{query}")
         self.logger.debug(f"Number of entries: {len(param_list)}")
 
-        # if "?" in query and isinstance(param_list, Sequence[Mapping]):
-        #     raise ValueError("Positional placeholders (?) used with named parameters.")
-        # if ":" in query and isinstance(param_list, (list, tuple)):
-        #     raise ValueError("Named placeholders (:) used with positional parameters.")
+        if not param_list:
+            self.logger.warning("executemany called with an empty parameter list.")
+            return (
+                self.cursor
+            )  # Or perhaps raise an exception depending on desired behavior
+
+        first_params = param_list[0] if param_list else None
+        using_named_placeholders: bool = ":" in query
+        using_positional_placeholders: bool = "?" in query
+
+        # Confirm positional and named-placeholders are not being inter-mixed
+        if using_positional_placeholders:
+            if isinstance(first_params, Mapping):
+                raise ValueError(
+                    "Positional placeholders (?) used with named parameters in executemany."
+                )
+            for params in param_list:
+                if not isinstance(params, (list, tuple)):
+                    raise ValueError(
+                        "Positional placeholders (?) require a sequence of parameters for each execution."
+                    )
+        elif using_named_placeholders:
+            if not isinstance(first_params, Mapping):
+                raise ValueError(
+                    "Named placeholders (:) used with positional parameters in executemany."
+                )
+            for params in param_list:
+                if not isinstance(params, Mapping):
+                    raise ValueError(
+                        "Named placeholders (:) require a mapping of parameters for each execution."
+                    )
+        elif first_params is not None:
+            self.logger.warning(
+                "Query does not contain placeholders, parameter list will be ignored."
+            )
 
         # Preview the first few entries for logging
         preview = list(param_list)[:3]
