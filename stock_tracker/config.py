@@ -53,6 +53,8 @@ class AppConfig:
             raise RuntimeError("AppConfig instance already set.")
         cls._instance = instance
 
+
+# TODO: convert into generic ConfigLoader, not just for AppConfig
 class ConfigLoader:
     @staticmethod
     def _load_merged_yaml(
@@ -60,6 +62,7 @@ class ConfigLoader:
     ) -> dict[str, Any]:
         base_path: Path = config_dir / "base.yaml"
         env_path: Path = config_dir / f"{env}.yaml"
+        """Get appropriate config.{env}.yaml files as a dict, merging nested items."""
 
         def load_yaml(path: Path) -> dict[str, Any]:
             if path.exists():
@@ -110,6 +113,7 @@ class ConfigLoader:
             merged_config.update(overrides)
 
         type_hints: dict[str, Any] = get_type_hints(AppConfig)
+        """Build AppConfig class object from input dict, validating and coercing data to fit the defined parameter types."""
         init_args: dict[str, Any] = {}
 
         for field in fields(AppConfig):
@@ -151,7 +155,7 @@ class ConfigLoader:
             )
             arg_type = field.type
 
-            # Optional: you can make type adjustments here if needed
+            # Optional:  make type adjustments here as needed
             if arg_type is Path:
                 arg_type = str  # Accept paths as strings from CLI
             elif arg_type is bool:
