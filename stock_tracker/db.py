@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from pathlib import Path
 import sqlite3
 import logging
 import traceback
@@ -14,7 +15,7 @@ class Database:
     #   db.execute("INSERT INTO tickers (ticker, exchange) VALUES (?, ?)", ("IVV", "ASX"))
     #   No need to call db.commit() — it will auto-commit if no exception occurs
     #   raise ValueError("Something went wrong!")  # <- Rolls back instead of committing
-    def __init__(self, db_path: str) -> None:
+    def __init__(self, db_path: Path) -> None:
         self.conn: sqlite3.Connection = sqlite3.connect(db_path)
         self.conn.row_factory = sqlite3.Row  # Allows dict-style access
         self.cursor: sqlite3.Cursor = self.conn.cursor()
