@@ -14,6 +14,14 @@ from typing import (
 
 
 
+# Optional: load .env if using python-dotenv
+try:
+    from dotenv import load_dotenv
+
+    env_file: str = ".env.test" if os.getenv("PYTEST_CURRENT_TEST") else ".env"
+    _ = load_dotenv(dotenv_path=env_file)
+except ImportError:
+    pass
 
 
 @dataclass
