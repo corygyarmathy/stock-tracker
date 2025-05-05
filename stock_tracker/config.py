@@ -12,33 +12,96 @@ from typing import (
     get_type_hints,
 )
 
-# Load .env or specific test override
-env_file: str = ".env.test" if os.getenv("PYTEST_CURRENT_TEST") else ".env"
-_ = load_dotenv(dotenv_path=env_file)
 
 
-# Define project root directory dynamically
-PROJECT_ROOT = Path(__file__).parent.parent.resolve()
-# CONFIG_FOLDER = "config/"
 
-ENV: str = os.getenv("ENV", "development").lower()
 
-DEFAULT_DB_PATH: str = os.getenv("DB_PATH", "dev.db")
-DEFAULT_CSV_PATH: str = os.getenv("CSV_PATH", "import.csv")
+@dataclass
+class AppConfig:
+    project_root: Path
+    env: str
+    db_path: Path
+    csv_path: Path
+    log_config_path: Path
+    log_file_path: Path
+    log_level: str
+    yf_max_requests: str
+    yf_request_interval_seconds: str
 
-# Logging configuration
-DEFAULT_LOGGING_CONFIG_PATH = os.path.join(
-    PROJECT_ROOT, os.getenv("LOGGING_CONFIG_PATH", "config/logging_config.yaml")
-)
-# DEFAULT_LOGGING_CONFIG_PATH: str = (
-#     f"{PROJECT_ROOT}/{os.getenv('LOGGING_CONFIG_PATH', 'config/logging_config.yaml')}"
-# )
-DEFAULT_LOG_FILE_PATH: str = os.getenv("LOG_FILE_PATH", "app.log")
-DEFAULT_LOG_LEVEL: str = os.getenv("LOG_LEVEL", "logging.DEBUG")
+    _instance: ClassVar[Self | None] = None  # private singleton instance
 
-# Yahoo Finance rate limit (requests per X seconds)
-DEFAULT_YF_MAX_REQUESTS: str = os.getenv("YF_MAX_REQUESTS", "2")
-DEFAULT_YF_REQUEST_INTERVAL_SECONDS: str = os.getenv("YF_REQUEST_INTERVAL_SECONDS", "5")
+    # @classmethod
+    # def from_env(cls) -> Self:
+    #     """Return a new config with values from env."""
+    #     instance = cls(
+    #         project_root=Path(__file__).parent.parent.resolve(),
+    #         env=os.getenv("ENV", "development").lower(),
+    #         db_path=Path(os.getenv("DB_PATH", "dev.db")),
+    #         csv_path=Path(os.getenv("CSV_PATH", "import.csv")),
+    #         log_config_path=Path(
+    #             os.path.join(
+    #                 AppConfig.project_root,
+    #                 os.getenv("LOGGING_CONFIG_PATH", "config/logging_config.yaml"),
+    #             )
+    #         ),
+    #         log_file_path=Path(os.getenv("LOG_FILE_PATH", "app.log")),
+    #         log_level=str(os.getenv("LOG_LEVEL", "logging.DEBUG")),
+    #         yf_max_requests=str(os.getenv("YF_MAX_REQUESTS", "2")),
+    #         yf_request_interval_seconds=str(
+    #             os.getenv("YF_REQUEST_INTERVAL_SECONDS", "5")
+    #         ),
+    #     )
+    #     cls._instance = instance
+    #     return instance
+
+    # @classmethod
+    # def load_from_file(cls, file_path: Path) -> Self:
+    #     with file_path.open("r") as f:
+    #         raw_data = yaml.safe_load(f)
+    #
+    #     # Dynamically convert fields to the correct types
+    #     init_args = {}
+    #     type_hints = get_type_hints(cls)
+    #     for field in fields(cls):
+    #         name: str = field.name
+    #         field_type = type_hints.get(name, Any)
+    #         value = raw_data.get(name, MISSING)
+    #
+    #         if value is MISSING:
+    #             if field.default is not MISSING:
+    #                 value = field.default
+    #             elif field.default_factory is not MISSING:  # type: ignore
+    #                 value = field.default_factory()  # type: ignore
+    #             else:
+    #                 raise ValueError(f"Missing required config field: {name}")
+    #
+    #         # Type conversion (minimal but safe)
+    #         if field_type is Path:
+    #             value = Path(value)
+    #         elif field_type is int:
+    #             value = int(value)
+    #         elif field_type is float:
+    #             value = float(value)
+    #         elif field_type is bool:
+    #             value = bool(value)
+    #         elif field_type is str:
+    #             value = str(value)
+    #         # For nested dataclasses or lists, you'd add more logic here
+    #
+    #         init_args[name] = value
+    #
+    #     instance = cls(**init_args)
+    #     cls._instance = instance
+    #     return instance
+
+    @classmethod
+    def get(cls) -> Self | None:
+        """Return the current singleton instance."""
+        # if cls._instance is None:
+        #     cls._instance = cls.from_env()
+        return cls._instance
+
+
 class ConfigLoader:
     @staticmethod
     def _load_merged_yaml(
