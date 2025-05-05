@@ -41,9 +41,7 @@ class AppConfig:
 
     @classmethod
     def get(cls) -> Self | None:
-        """Return the current singleton instance."""
-        # if cls._instance is None:
-        #     cls._instance = cls.from_env()
+        """Return the current singleton instance if initialised, None if not."""
         return cls._instance
 
     @classmethod
