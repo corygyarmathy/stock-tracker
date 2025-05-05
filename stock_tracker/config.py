@@ -46,6 +46,12 @@ class AppConfig:
         #     cls._instance = cls.from_env()
         return cls._instance
 
+    @classmethod
+    def set(cls, instance: Self) -> None:
+        """Set the singleton instance from an AppConfig object. Can only be set once."""
+        if cls._instance is not None:
+            raise RuntimeError("AppConfig instance already set.")
+        cls._instance = instance
 
 class ConfigLoader:
     @staticmethod
