@@ -145,7 +145,9 @@ class ConfigLoader:
         return result
 
     @staticmethod
-    def _dict_to_config(data: dict[str, Any], config_class: type[Any]) -> AppConfig:
+    def _dict_to_config(
+        data: dict[str, Any], config_class: type[AppConfig]
+    ) -> AppConfig:
         coerced_data: dict[str, Any] = {}
 
         for field in fields(config_class):
