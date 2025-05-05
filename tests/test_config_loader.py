@@ -9,31 +9,6 @@ import yaml
 from config import AppConfig, ConfigLoader
 
 
-@pytest.fixture
-def temp_config_dir(tmp_path):
-    """Create a temporary config directory with base and dev YAML files."""
-    config_dir = os.path.join(tmp_path, "config")
-    os.mkdir(config_dir)
-
-    base_config = {
-        "log_level": "INFO",
-        "yf_max_requests": 100,
-        "yf_request_interval_seconds": 1.5,
-    }
-    dev_config: dict[str, str] = {
-        "env": "dev",
-        "db_path": "./dev.db",
-        "csv_path": "./import.csv",
-        "log_file_path": "./tickers.log",
-        "log_level": "DEBUG",  # overrides base
-    }
-
-    _ = (Path(os.path.join(config_dir, "base.yaml"))).write_text(yaml.dump(base_config))
-    _ = (Path(os.path.join(config_dir, "dev.yaml"))).write_text(yaml.dump(dev_config))
-
-    return config_dir
-
-
 def test_load_app_config(monkeypatch, temp_config_dir):
     # Set ENV to dev
     monkeypatch.setenv("ENV", "dev")
