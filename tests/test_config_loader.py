@@ -77,3 +77,36 @@ yf_request_interval_seconds: 1.5
 
     with pytest.raises(TypeError, match="Invalid type for 'yf_max_requests'"):
         _ = ConfigLoader.load_app_config()
+
+
+def test_dict_to_config_success(tmp_path):
+    data = {
+        "project_root": str(tmp_path),
+        "env": "test",
+        "db_path": str(tmp_path / "test.db"),
+        "csv_path": str(tmp_path / "import.csv"),
+        "log_config_path": str(tmp_path / "logconf.yaml"),
+        "log_file_path": str(tmp_path / "app.log"),
+        "log_level": "INFO",
+        "yf_max_requests": 99,
+        "yf_request_interval_seconds": 1.0,
+    }
+    config = ConfigLoader._dict_to_config(data, AppConfig)
+    assert isinstance(config, AppConfig)
+    assert config.db_path == tmp_path / "test.db"
+
+
+def test_dict_to_config_invalid_type():
+    bad_data = {
+        "project_root": "./",
+        "env": "test",
+        "db_path": "./db.sqlite",
+        "csv_path": "./input.csv",
+        "log_config_path": "./log.yaml",
+        "log_file_path": "./log.txt",
+        "log_level": "INFO",
+        "yf_max_requests": "not-a-number",
+        "yf_request_interval_seconds": 1.0,
+    }
+    with pytest.raises(TypeError, match="Invalid type for 'yf_max_requests'"):
+        _ = ConfigLoader._dict_to_config(bad_data, AppConfig)
