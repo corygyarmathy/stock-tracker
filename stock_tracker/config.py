@@ -92,32 +92,14 @@ class ConfigLoader:
     def _dict_to_config(
         data: dict[str, Any], config_class: type[AppConfig]
     ) -> AppConfig:
-        coerced_data: dict[str, Any] = {}
-
-        for field in fields(config_class):
-            name: str = field.name
-            expected_type: type[Any] = type(field.type)
-            value: Any | None = data.get(name)
-
-            coerced_data[name] = convert_type(value, expected_type)
-
-        return config_class(**coerced_data)
-
-    @staticmethod
-    def load_app_config(overrides: dict[str, Any] | None = None) -> AppConfig:
-        env: str = os.getenv("ENV", "dev").lower()
-        merged_config: dict[str, Any] = ConfigLoader._load_merged_yaml(env)
-        if overrides:
-            merged_config.update(overrides)
-
-        type_hints: dict[str, Any] = get_type_hints(AppConfig)
         """Build AppConfig class object from input dict, validating and coercing data to fit the defined parameter types."""
+        type_hints: dict[str, Any] = get_type_hints(config_class)
         init_args: dict[str, Any] = {}
 
-        for field in fields(AppConfig):
-            name: str = field.name
+        for field in fields(config_class):
+            name = field.name
             expected_type = type_hints.get(name, Any)
-            value = merged_config.get(name, MISSING)
+            value = data.get(name, MISSING)
 
             if value is MISSING:
                 if field.default is not MISSING:
@@ -134,7 +116,18 @@ class ConfigLoader:
                     f"Invalid type for '{name}': expected {expected_type}, got {type(value)}. Error: {e}"
                 )
 
-        return AppConfig(**init_args)
+        return config_class(**init_args)
+
+    @staticmethod
+    def load_app_config(overrides: dict[str, Any] | None = None) -> AppConfig:
+        """Builds an AppConfig object based on the ENV environment variable, set within the .env file"""
+        env: str = os.getenv("ENV", "dev").lower()
+        merged_config: dict[str, Any] = ConfigLoader._load_merged_yaml(env)
+
+        if overrides:
+            merged_config = ConfigLoader._deep_merge(merged_config, overrides)
+
+        return ConfigLoader._dict_to_config(merged_config, AppConfig)
 
     @staticmethod
     def build_arg_parser(config_class: type[AppConfig]) -> argparse.ArgumentParser:
