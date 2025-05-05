@@ -1,0 +1,11 @@
+DB_PATH: stocktracker.db
+CSV_PATH: import.csv
+
+# Logging configuration
+LOGGING_CONFIG_PATH: config/logging_config.yaml
+LOG_FILE_PATH: app.log
+LOG_LEVEL: logging.DEBUG
+
+# Yahoo Finance rate limit (requests per X seconds)
+YF_MAX_REQUESTS: 2
+YF_REQUEST_INTERVAL_SECONDS: 5
