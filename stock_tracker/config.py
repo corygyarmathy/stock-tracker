@@ -58,9 +58,9 @@ class ConfigLoader:
     def _load_merged_yaml(
         env: str, config_dir: Path = Path("config")
     ) -> dict[str, Any]:
-        base_path: Path = config_dir / "base.yaml"
-        env_path: Path = config_dir / f"{env}.yaml"
         """Get appropriate config.{env}.yaml files as a dict, merging nested items."""
+        base_path: Path = config_dir / "config.base.yaml"
+        env_path: Path = config_dir / f"config.{env}.yaml"
 
         def load_yaml(path: Path) -> dict[str, Any]:
             if path.exists():
