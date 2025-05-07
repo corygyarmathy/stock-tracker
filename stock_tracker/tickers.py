@@ -45,16 +45,20 @@ def get_yfinance_session(
     )
 
 
-def is_valid_ticker(ticker: str, exchange: str, session: CachedLimiterSession) -> bool:
-    full_symbol: str = f"{ticker}.{exchange}"
+def is_valid_ticker(
+    symbol: str, exchange: str, session: CachedLimiterSession
+) -> yf.Ticker | None:
+    full_symbol: str = f"{symbol}.{exchange}"
     try:
-        info: FastInfo = yf.Ticker(full_symbol, session).fast_info
-        price: float | None = info["last_price"]
+        ticker: yf.Ticker = yf.Ticker(full_symbol, session)
+        price: float | None = ticker.fast_info["last_price"]
         logger.debug(f"{full_symbol}: last_price = {price}")
-        return isinstance(price, (float)) and price > 0
+        if isinstance(price, (float)) and price > 0:
+            return ticker
+        raise ValueError(f"Price value is invalid. Price: {price}")
     except Exception as e:
         logger.error(f"Failed to validate ticker: {full_symbol}. Error: {e}")
-        return False
+        return None
 
 
 def search_ticker_quotes(
