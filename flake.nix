@@ -53,7 +53,7 @@
 
           shellHook = ''
             export PYTHON_DOTENV_LOAD_ALL=1
-            export PYTHONPATH="${toString ./stock_tracker}:$PYTHONPATH"
+            export PYTHONPATH="$PWD:$PYTHONPATH"
             echo "🐍 Python flake dev shell ready"
           '';
         };

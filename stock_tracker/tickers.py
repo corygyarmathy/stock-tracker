@@ -9,7 +9,8 @@ from requests_ratelimiter import LimiterMixin, MemoryQueueBucket
 from pyrate_limiter import Duration, RequestRate, Limiter
 from yfinance.base import FastInfo
 
-from db import save_ticker, init_db
+from stock_tracker.config import AppConfig
+from stock_tracker.db import Database
 
 logger = logging.getLogger("ticker_importer.tickers")
 

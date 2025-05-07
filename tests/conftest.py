@@ -2,6 +2,8 @@ import pytest
 import yaml
 from pathlib import Path
 
+from stock_tracker.config import AppConfig
+
 
 @pytest.fixture
 def temp_config_dir(tmp_path):

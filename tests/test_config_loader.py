@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from config import AppConfig, ConfigLoader
+from stock_tracker.config import AppConfig, ConfigLoader
 
 
 def test_load_app_config(monkeypatch, temp_config_dir):

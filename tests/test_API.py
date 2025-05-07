@@ -1,4 +1,4 @@
-from main import get_stock_price
+from stock_tracker.main import get_stock_price
 import pytest
 from pytest_mock import MockerFixture
 from unittest.mock import MagicMock
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 @pytest.fixture
 def mock_yfinance_session(mocker: MockerFixture) -> MagicMock:
     mock_session = mocker.MagicMock()
-    _ = mocker.patch("main.get_yfinance_session", return_value=mock_session)
+    _ = mocker.patch("stock_tracker.main.get_yfinance_session", return_value=mock_session)
     return mock_session
 
 
@@ -16,7 +16,7 @@ def mock_yfinance_session(mocker: MockerFixture) -> MagicMock:
 @pytest.fixture
 def mock_yfinance_ticker(mocker: MockerFixture) -> MagicMock:
     mock_ticker = mocker.MagicMock()
-    _ = mocker.patch("main.yf.Ticker", return_value=mock_ticker)
+    _ = mocker.patch("stock_tracker.main.yf.Ticker", return_value=mock_ticker)
     return mock_ticker
 
 
