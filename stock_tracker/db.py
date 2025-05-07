@@ -190,110 +190,71 @@ class Database:
             self.commit()
         self.close()
 
+    # TODO: review that it actually doesn't execute if the tables exist
     def create_tables_if_not_exists(self) -> None:
+        # Tracks each unique stock
         _ = self.execute("""
-            CREATE TABLE IF NOT EXISTS tickers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ticker TEXT NOT NULL,
-                exchange TEXT NOT NULL,
-                UNIQUE(ticker, exchange)
-            )
+        CREATE TABLE stocks (
+            id INTEGER PRIMARY KEY,
+            ticker TEXT NOT NULL,
+            exchange TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            name TEXT,
+            UNIQUE(ticker, exchange)
+        );
         """)
+        # Stores user orders
         _ = self.execute("""
-            CREATE TABLE IF NOT EXISTS splits (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ticker TEXT NOT NULL,
-                exchange TEXT NOT NULL,
-                split_date TEXT NOT NULL,
-                split_ratio REAL NOT NULL,
-                UNIQUE(ticker, exchange, split_date)
-            )
+        CREATE TABLE stock_orders (
+            id INTEGER PRIMARY KEY,
+            stock_id INTEGER NOT NULL,
+            purchase_datetime TEXT NOT NULL,
+            quantity REAL NOT NULL,
+            price_paid REAL NOT NULL,  -- price in native currency per share
+            fee REAL DEFAULT 0.0,
+            note TEXT,
+            FOREIGN KEY(stock_id) REFERENCES stocks(id)
+        );
         """)
+        # Caches current stock info (refreshable)
         _ = self.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                ticker TEXT NOT NULL,
-                exchange TEXT NOT NULL,
-                order_date TEXT NOT NULL,
-                shares REAL NOT NULL,
-                adjusted_shares REAL,
-                price REAL,
-                order_type TEXT,
-                UNIQUE(ticker, exchange, order_date, order_type)
-            )
+        CREATE TABLE stock_info (
+            stock_id INTEGER PRIMARY KEY,
+            last_updated TEXT NOT NULL,
+            current_price REAL,
+            market_cap REAL,
+            pe_ratio REAL,
+            dividend_yield REAL,
+            FOREIGN KEY(stock_id) REFERENCES stocks(id)
+        );
         """)
-
-
-# def init_db(db: Database) -> None:
-#     _ = db.execute("""
-#         CREATE TABLE IF NOT EXISTS orders (
-#             id INTEGER PRIMARY KEY AUTOINCREMENT,
-#             ticker TEXT NOT NULL,
-#             exchange TEXT,
-#             order_date TEXT NOT NULL,
-#             original_shares REAL NOT NULL,
-#             adjusted_shares REAL
-#         );
-#
-#         CREATE TABLE IF NOT EXISTS splits (
-#             id INTEGER PRIMARY KEY AUTOINCREMENT,
-#             ticker TEXT NOT NULL,
-#             exchange TEXT NOT NULL,
-#             split_date TEXT NOT NULL,
-#             split_ratio REAL NOT NULL,
-#             UNIQUE(ticker, exchange, split_date) -- Avoid inserting duplicates
-#         );
-#     """)
-#     db.commit()
-#     db.close()
-
-
-# def save_ticker(db_path: str, symbol: str, exchange: str, full_symbol: str) -> bool:
-#     try:
-#         conn: sqlite3.Connection = sqlite3.connect(db_path)
-#         cur: sqlite3.Cursor = conn.cursor()
-#         _ = cur.execute(
-#             "INSERT OR IGNORE INTO tickers (symbol, exchange, full_symbol) VALUES (?, ?, ?)",
-#             (symbol, exchange, full_symbol),
-#         )
-#         conn.commit()
-#         inserted: int = cur.rowcount
-#         conn.close()
-#         return inserted > 0
-#     except Exception as e:
-#         logger.error(f"DB insert failed for {full_symbol}: {e}")
-#         return False
-
-
-# def insert_order_into_db(
-#     cursor, ticker, exchange, original_shares, adjusted_shares, order_date
-# ):
-#     cursor.execute(
-#         """
-#         INSERT INTO orders (ticker, exchange, original_shares, adjusted_shares, order_date)
-#         VALUES (?, ?, ?, ?, ?)
-#     """,
-#         (ticker, exchange, original_shares, adjusted_shares, order_date),
-#     )
-
-
-# def get_adjusted_shares(
-#     cursor: sqlite3.Cursor,
-#     ticker: str,
-#     exchange: str,
-#     original_shares: float,
-#     order_date: str,
-# ) -> float:
-#     _ = cursor.execute(
-#         """
-#         SELECT split_ratio FROM splits
-#         WHERE ticker = ? AND exchange = ? AND split_date > ?
-#         ORDER BY split_date ASC
-#     """,
-#         (ticker, exchange, order_date),
-#     )
-#
-#     adjusted: float = original_shares
-#     for (ratio,) in cursor.fetchall():
-#         adjusted *= ratio
-#     return adjusted
+        # Corporate actions like splits and mergers
+        _ = self.execute("""
+        CREATE TABLE corporate_actions (
+            id INTEGER PRIMARY KEY,
+            stock_id INTEGER NOT NULL,
+            action_type TEXT NOT NULL, -- 'split', 'merger', 'acquisition', etc.
+            action_date TEXT NOT NULL,
+            ratio REAL,                -- e.g. 2.0 for 2:1 split
+            target_stock_id INTEGER,   -- for mergers/acquisitions
+            FOREIGN KEY(stock_id) REFERENCES stocks(id),
+            FOREIGN KEY(target_stock_id) REFERENCES stocks(id)
+        );
+        """)
+        # Currencies and conversion rates
+        _ = self.execute("""
+        CREATE TABLE fx_rates (
+            base_currency TEXT NOT NULL,
+            target_currency TEXT NOT NULL,
+            date TEXT NOT NULL,
+            rate REAL NOT NULL,
+            PRIMARY KEY(base_currency, target_currency, date)
+        );
+        """)
+        # Useful indexes
+        # TODO: investigate these further
+        _ = self.execute("""
+        CREATE INDEX idx_orders_stock_id ON stock_orders(stock_id);
+        CREATE INDEX idx_prices_stock_date ON historical_prices(stock_id, date);
+        CREATE INDEX idx_fx_rates_date ON fx_rates(date);
+        """)

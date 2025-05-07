@@ -1,16 +1,19 @@
 # Import libraries
 import csv
 from typing import Any
+from db import Database
 import yfinance as yf
 import json
-
-import argparse
+import logging
+from config import AppConfig, ConfigLoader
 from tickers import import_valid_tickers
 from utils import setup_logging
 from tickers import (
     CachedLimiterSession,
     get_yfinance_session,
 )
+
+logger: logging.Logger = logging.getLogger("main")
 
 
 def parse_orders(csv_path: str) -> list[dict[str, str]]:
@@ -40,7 +43,7 @@ def write_json_to_file(data: dict[Any, Any], filename: str) -> None:
 
 def get_stock_price(
     ticker: str, session: CachedLimiterSession, exchange: str | None = None
-) -> tuple[float | None, str | None]:
+) -> float:
     """
     Retrieves the latest stock price for a given symbol using the Alpha Vantage API.
     Returns a tuple: (price: float or None, error: str or None).
@@ -48,28 +51,17 @@ def get_stock_price(
     # TODO: Specify the currency, and convert it if necessary
     # TODO: Ensure can hangle stocks with the same ticker, that are listed in different exchanges
     try:
-        # stock_ticker = ticker
-        if exchange:
-            ticker = f"{ticker}.{exchange}"
-            print("Formatted ticker " + ticker)
-        # if exchange:
-        #     stock_ticker, symbol_err = get_symbol_for_exchange(
-        #         ticker, exchange, session
-        #     )
-        #     if not stock_ticker:
-        #         print(f"{symbol_err}")
-        #         stock_ticker = ticker
-        data: yf.Ticker = yf.Ticker(ticker, session)
-        if data.fast_info["last_price"]:
-            price: float = float(data.fast_info["last_price"])
-            return price, None
-        else:
-            return (
-                None,
-                f"Could not retrieve price for {ticker} at {exchange}. Retrieved: {data}",
-            )
+        logger.debug(f"Checking {ticker} price in exchange: {exchange}.")
+        full_ticker: str = f"{ticker}.{exchange}" if exchange else ticker
+        data: yf.Ticker = yf.Ticker(full_ticker, session=session)
+
+        last_price = data.fast_info.last_price
+        if last_price is not None:
+            logger.debug(f"{ticker} price is: {last_price}.")
+            return float(last_price)
+        raise ValueError(f"No price found for {full_ticker}")
     except Exception as e:
-        return None, f"Error retrieving price for {ticker} at {exchange}. Error: {e}"
+        raise ValueError(f"Failed to retrieve price for {ticker} at {exchange}: {e}")
 
 
 def calculate_order_capital_gains(order: dict[str, str], current_price: float) -> float:
@@ -81,54 +73,26 @@ def calculate_order_capital_gains(order: dict[str, str], current_price: float) -
     return current_total_price - order_price
 
 
-# def import_valid_tickers(csv_path: str, db_path: str, session: CachedLimiterSession):
-#     # Load CSV
-#     df: pd.DataFrame = pd.read_csv(csv_path)
-#
-#     # Connect to (or create) SQLite DB
-#     conn: sqlite3.Connection = sqlite3.connect(db_path)
-#     cursor: sqlite3.Cursor = conn.cursor()
-#
-#     # Create table if it doesn't exist
-#     _ = cursor.execute("""
-#         CREATE TABLE IF NOT EXISTS tickers (
-#             id INTEGER PRIMARY KEY AUTOINCREMENT,
-#             symbol TEXT NOT NULL,
-#             exchange TEXT NOT NULL,
-#             full_symbol TEXT UNIQUE NOT NULL
-#         );
-#     """)
-#
-#     inserted = 0
-#     for _, row in df.iterrows():
-#         ticker = str(row["ticker"]).strip()
-#         exchange = str(row["exchange"]).strip()
-#         full_symbol = f"{ticker}.{exchange}"
-#
-#         if is_valid_ticker(ticker, exchange, session):
-#             try:
-#                 _ = cursor.execute(
-#                     "INSERT OR IGNORE INTO tickers (symbol, exchange, full_symbol) VALUES (?, ?, ?)",
-#                     (ticker, exchange, full_symbol),
-#                 )
-#                 inserted += 1
-#                 print(f"Inserted: {full_symbol}")
-#             except Exception as e:
-#                 print(f"Failed to insert {full_symbol}: {e}")
-#         else:
-#             print(f"Invalid: {full_symbol}")
-#
-#     conn.commit()
-#     conn.close()
-#     print(f"\nDone! {inserted} valid tickers inserted.")
+def main() -> None:
+    # Construct AppConfig private singelton instance
+    parser = ConfigLoader.build_arg_parser(AppConfig)
+    args = parser.parse_args()
+    overrides = ConfigLoader.args_to_overrides(args)
+    config = ConfigLoader.load_app_config(overrides=overrides)
+    AppConfig.set(config)
 
+    setup_logging(config.log_config_path)
 
-def main(args: argparse.Namespace) -> None:
-    # orders: list[dict[str, str]] = parse_orders(csv_path="orders.csv")
     session: CachedLimiterSession = get_yfinance_session()
 
-    setup_logging(args.log_config)
-    import_valid_tickers(args.csv_path, args.db_path, session)
+    with Database(config.db_path) as db:
+        _ = db.create_tables_if_not_exists()
+
+    import_valid_tickers(config.csv_path, session)
+
+    # orders: list[dict[str, str]] = parse_orders(csv_path="orders.csv")
+    # ticker_splits = yf.Ticker("APPL", session).splits
+    # data: yf.Ticker = yf.Ticker("IVV")
 
     # for order in orders:
     #     print(search_ticker(order["ticker"], session))
@@ -150,29 +114,34 @@ def main(args: argparse.Namespace) -> None:
     #     print()
     #
     # print("Complete!")
+    #
+
+    # INFO: yf.Ticker("IVV")
+    # ticker str = 'IVV'
+
+    # INFO: yf.Ticker.fast_info Example ("IVV.AX")
+    # currency str = 'AUD'
+    # day_high float = 55.939998626708984
+    # day_low float = 55.119998931884766
+    # exchange str = 'ASX'
+    # fifty_day_average float = 60.607799987792966
+    # last_price float = 55.939998626708984
+    # last_volume int = 441315
+    # market_cap NoneType = None
+    # open float = 55.189998626708984
+    # previous_close float = 55.79999923706055
+    # proxy NoneType = None
+    # quote_type str = 'ETF'
+    # regular_market_previous_close float = 55.79999923706055
+    # shares NoneType = None
+    # ten_day_average_volume int = 1779005
+    # three_month_average_volume int = 596180
+    # timezone str = 'Australia/Sydney'
+    # two_hundred_day_average float = 59.271899967193605
+    # year_change float = 0.08368848865194049
+    # year_high float = 65.2699966430664
+    # year_low float = 51.369998931884766
 
 
 if __name__ == "__main__":
-    parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="Import tickers from CSV and validate with yfinance."
-    )
-
-    _ = parser.add_argument(
-        "--csv-path",
-        default=DEFAULT_CSV_PATH,
-        help=f"Path to input CSV file (default: {DEFAULT_CSV_PATH})",
-    )
-    _ = parser.add_argument(
-        "--db-path",
-        default=DEFAULT_DB_PATH,
-        help=f"Path to SQLite DB (default: {DEFAULT_DB_PATH})",
-    )
-    _ = parser.add_argument(
-        "--log-config",
-        default=DEFAULT_LOGGING_CONFIG_PATH,
-        help=f"Path to logging config YAML file (default: {DEFAULT_LOGGING_CONFIG_PATH})",
-    )
-
-    args: argparse.Namespace = parser.parse_args()
-
-    main(args)
+    main()
