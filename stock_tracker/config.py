@@ -51,6 +51,15 @@ class AppConfig:
             raise RuntimeError("AppConfig instance already set.")
         cls._instance = instance
 
+    @classmethod
+    def _reset(cls) -> None:
+        """Testing-only method: reset the singleton instance."""
+        if os.getenv("ENV") != "test":
+            raise RuntimeError(
+                "AppConfig._reset() should only be used in test environment."
+            )
+        cls._instance = None
+
 
 # TODO: convert into generic ConfigLoader, not just for AppConfig
 class ConfigLoader:
