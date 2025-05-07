@@ -167,16 +167,5 @@ class ConfigLoader:
         return parser
 
     @staticmethod
-    def override_from_args(config: AppConfig, args: Any) -> AppConfig:
-        """
-        Replace config fields from argparse.Namespace or dict-like object.
-        Only updates known AppConfig fields.
-        """
-        update_fields = {}
-        for field in fields(config):
-            name: str = field.name
-            if hasattr(args, name):
-                value = getattr(args, name)
-                if value is not None:
-                    update_fields[name] = value
-        return replace(config, **update_fields)
+    def args_to_overrides(args: argparse.Namespace) -> dict[str, Any]:
+        return {k: v for k, v in vars(args).items() if v is not None}
