@@ -21,6 +21,11 @@ handlers:
     mode: a
 
 loggers:
+  main:
+    level: DEBUG
+    handlers: [console, file]
+    propagate: no
+
   tickers:
     level: DEBUG
     handlers: [console, file]
