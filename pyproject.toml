@@ -1,19 +1,41 @@
-# pyproject.toml
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "stock-tracker"
 version = "0.1.0"
+description = "A Python CLI stock tracker with config management, API integration, and test coverage."
+authors = [{ name = "Cory Gyarmathy", email = "cory.gyarmathy@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.10"
+
+# Runtime dependencies
 dependencies = [
   "yfinance",
-  "pytest",
-  "pytest-mock",
-  # add any others you use
+  "requests",
+  "requests-cache",
+  "requests-ratelimiter",
+  "pyrate-limiter",
+  "python-dotenv",
+  "pandas",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest", "pytest-mock", "responses", "ruff", "pyright"]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["stock_tracker"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
 [tool.pyright]
-"extraPaths" = [
-  "./stock_tracker", # Ensure Pyright can find the path to your local package
-]
+include = ["stock_tracker", "tests"]
+pythonVersion = "3.12"
