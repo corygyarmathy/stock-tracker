@@ -1,0 +1,8 @@
+env: "test"
+db_path: "/tmp/stock_tracker_test/test.db"
+csv_path: "/tmp/stock_tracker_test/test.csv"
+log_config_path: "/tmp/stock_tracker_test/logging.yaml"
+log_file_path: "/tmp/stock_tracker_test/test.log"
+log_level: "DEBUG"
+yf_max_requests: "5"
+yf_request_interval_seconds: "0.5"
