@@ -97,7 +97,7 @@ class ConfigLoader:
         init_args: dict[str, Any] = {}
 
         for field in fields(config_class):
-            name = field.name
+            name: str = field.name
             expected_type = type_hints.get(name, Any)
             value = data.get(name, MISSING)
 
@@ -124,6 +124,7 @@ class ConfigLoader:
         env: str = os.getenv("ENV", "dev").lower()
         merged_config: dict[str, Any] = ConfigLoader._load_merged_yaml(env)
 
+        # If provided CLI overrides, nested (deep) merge with merged_config
         if overrides:
             merged_config = ConfigLoader._deep_merge(merged_config, overrides)
 

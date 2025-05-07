@@ -60,7 +60,7 @@ def is_valid_ticker(ticker: str, exchange: str, session: CachedLimiterSession) -
 def search_ticker_quotes(
     ticker: str, session: CachedLimiterSession
 ) -> list[dict[str, Any]]:
-    # Example return of search['quotes']
+    # INFO: Example return of search['quotes']
     # 'exchange' str = 'BTS'
     # 'shortname' str = 'iShares Trust iShares S&P 500 B'
     # 'quoteType' str = 'ETF'
@@ -87,10 +87,15 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
         print("No alternatives found.")
         return None
 
-    # Define column widths
-    col_widths = {"index": 4, "symbol": 12, "exchange": 10, "type": 8, "name": 40}
+    col_widths: dict[str, int] = {
+        "index": 4,
+        "symbol": 12,
+        "exchange": 10,
+        "type": 8,
+        "name": 40,
+    }
 
-    header = (
+    header: str = (
         f"{'No.':<{col_widths['index']}} "
         f"{'Symbol':<{col_widths['symbol']}} "
         f"{'Exchange':<{col_widths['exchange']}} "
@@ -102,14 +107,14 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
     print("-" * len(header))
 
     for idx, item in enumerate(results, 1):
-        symbol = str(item.get("symbol", ""))[: col_widths["symbol"]]
-        exchange = str(item.get("exchange", ""))[: col_widths["exchange"]]
-        quote_type = str(item.get("quoteType", ""))[: col_widths["type"]]
-        name = str(item.get("shortname") or item.get("longname", ""))[
+        symbol: str = str(item.get("symbol", ""))[: col_widths["symbol"]]
+        exchange: str = str(item.get("exchange", ""))[: col_widths["exchange"]]
+        quote_type: str = str(item.get("quoteType", ""))[: col_widths["type"]]
+        name: str = str(item.get("shortname") or item.get("longname", ""))[
             : col_widths["name"]
         ]
 
-        info = (
+        info: str = (
             f"{str(idx):<{col_widths['index']}} "
             f"{symbol:<{col_widths['symbol']}} "
             f"{exchange:<{col_widths['exchange']}} "
@@ -120,7 +125,7 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
 
     while True:
         try:
-            choice = input(
+            choice_str: str | None = input(
                 "Enter the number of the correct symbol (or press Enter to skip): "
             ).strip()
             if not choice:

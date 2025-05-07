@@ -10,7 +10,7 @@ from collections.abc import Mapping
 
 
 class Database:
-    # Example usage:
+    # INFO: Example usage:
     # with Database("stock_orders.db") as db:
     #   db.execute("INSERT INTO tickers (ticker, exchange) VALUES (?, ?)", ("IVV", "ASX"))
     #   No need to call db.commit() — it will auto-commit if no exception occurs
@@ -45,7 +45,7 @@ class Database:
 
         try:
             _ = self.conn.execute("BEGIN")
-            result = self.cursor.execute(query, params)
+            result: sqlite3.Cursor = self.cursor.execute(query, params)
             self.commit()
             self.logger.info(
                 f"Query executed successfully. Rows affected: {self.cursor.rowcount}"
@@ -115,6 +115,7 @@ class Database:
         preview = list(param_list)[:3]
         self.logger.debug(f"Sample params: {preview}")
 
+        # Execute query
         try:
             _ = self.conn.execute("BEGIN")
             result = self.cursor.executemany(query, param_list)
