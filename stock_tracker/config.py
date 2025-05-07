@@ -40,8 +40,10 @@ class AppConfig:
     _instance: ClassVar[Self | None] = None  # private singleton instance
 
     @classmethod
-    def get(cls) -> Self | None:
-        """Return the current singleton instance if initialised, None if not."""
+    def get(cls) -> Self:
+        """Return the current singleton instance, or raise if not set."""
+        if cls._instance is None:
+            raise RuntimeError("AppConfig has not been initialised.")
         return cls._instance
 
     @classmethod
