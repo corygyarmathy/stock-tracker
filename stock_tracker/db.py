@@ -1,12 +1,9 @@
-from collections.abc import Sequence
-from pathlib import Path
-import sqlite3
 import logging
+import sqlite3
 import traceback
-
-
+from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import Any, Self
-from collections.abc import Mapping
 
 
 class Database:

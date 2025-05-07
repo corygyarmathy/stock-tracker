@@ -1,13 +1,14 @@
 # pyright: ignore[reportUnsafeMultipleInheritance, reportIncompatibleMethodOverride]
 import logging
+from pathlib import Path
 from typing import Any
-import yfinance as yf
+
 import pandas as pd
+import yfinance as yf
+from pyrate_limiter import Duration, Limiter, RequestRate
 from requests import Session
 from requests_cache import CacheMixin, SQLiteCache
 from requests_ratelimiter import LimiterMixin, MemoryQueueBucket
-from pyrate_limiter import Duration, RequestRate, Limiter
-from yfinance.base import FastInfo
 
 from stock_tracker.config import AppConfig
 from stock_tracker.db import Database

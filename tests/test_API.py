@@ -1,8 +1,9 @@
-from stock_tracker.main import get_stock_price
-import pytest
-from pytest_mock import MockerFixture
 from unittest.mock import MagicMock
 
+import pytest
+from pytest_mock import MockerFixture
+
+from stock_tracker.main import get_stock_price
 
 # Fixture 1: Mock just the session
 @pytest.fixture

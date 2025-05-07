@@ -1,6 +1,6 @@
-from typing import Any, Union, get_origin, get_args
-from pathlib import Path
 import types
+from pathlib import Path
+from typing import Any, Union, get_args, get_origin
 
 
 def convert_type(value: Any, expected_type: type | types.UnionType) -> Any:

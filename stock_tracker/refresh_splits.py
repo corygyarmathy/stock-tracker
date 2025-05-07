@@ -1,10 +1,10 @@
-import sqlite3
-from typing import Any
-import yfinance as yf
-import pandas as pd
-from datetime import datetime
 import logging
+import sqlite3
+from datetime import datetime
+from typing import Any
 
+import pandas as pd
+import yfinance as yf
 
 logger: logging.Logger = logging.getLogger("refresh_splits")
 
