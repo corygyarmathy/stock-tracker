@@ -37,20 +37,11 @@ def test_isolated_config_modifications(isolated_config_environment):
     config: AppConfig = ConfigLoader.load_app_config()
     assert config.log_level == "TRACE"
 
-def test_missing_required_config(monkeypatch, tmp_path):
-    config_dir = tmp_path / "config"
-    config_dir.mkdir()
-    (config_dir / "config.base.yaml").write_text("")
-    (config_dir / "config.dev.yaml").write_text("env: dev")
 
-    monkeypatch.setenv("ENV", "dev")
-    monkeypatch.chdir(tmp_path)
 def test_config_with_cli_overrides(config_with_cli_overrides):
     """Test that CLI arguments properly override config values."""
     overrides: dict[str, str | int] = {"log_level": "CRITICAL", "yf_max_requests": 5000}
 
-    with pytest.raises(ValueError, match="Missing required config value: 'db_path'"):
-        _ = ConfigLoader.load_app_config()
     config: AppConfig = config_with_cli_overrides(overrides)
 
     assert config.log_level == "CRITICAL"
@@ -75,6 +66,23 @@ yf_request_interval_seconds: 1.5
     monkeypatch.chdir(tmp_path)
 
     with pytest.raises(TypeError, match="Invalid type for 'yf_max_requests'"):
+def test_missing_required_config(isolated_config_environment):
+    """Test with missing config files."""
+    config_dir = isolated_config_environment["config_dir"]
+
+    # Modify a config file for this specific test
+    test_config_path = config_dir / "config.test.yaml"
+
+    with open(test_config_path, "r") as f:
+        config_data = yaml.safe_load(f) or {}
+
+    # Remove a value
+    del config_data["db_path"]
+
+    with open(test_config_path, "w") as f:
+        yaml.dump(config_data, f)
+
+    with pytest.raises(ValueError, match="Missing required config value: 'db_path'"):
         _ = ConfigLoader.load_app_config()
 
 
