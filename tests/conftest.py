@@ -1,10 +1,15 @@
+import os
 from pathlib import Path
+from typing import Any, Callable
+from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
 
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
+
+
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_environment(monkeypatch):
     """Ensure we're using the test environment for all tests."""
@@ -110,3 +115,14 @@ def isolated_config_environment(tmp_path: Path, monkeypatch):
         yield {"config_dir": test_config_dir, "temp_dir": tmp_path}
 
 
+@pytest.fixture
+def config_with_cli_overrides() -> Callable[..., AppConfig]:
+    """Fixture for testing CLI argument overrides."""
+
+    def _config_with_overrides(overrides: dict[str, Any]) -> AppConfig:
+        """Load config with the specified CLI overrides."""
+        with patch.dict(os.environ, {"ENV": "test"}):
+            config: AppConfig = ConfigLoader.load_app_config(overrides)
+            return config
+
+    return _config_with_overrides
