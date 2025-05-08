@@ -4,6 +4,16 @@ import pytest
 import yaml
 
 from stock_tracker.config import AppConfig
+@pytest.fixture(scope="session", autouse=True)
+def ensure_test_environment(monkeypatch):
+    """Ensure we're using the test environment for all tests."""
+    # This will override any ENV setting from .env.test if needed
+    monkeypatch.setenv("ENV", "test")
+
+    # Create required test fixtures directory if it doesn't exist
+    # Path("tests/fixtures").mkdir(parents=True, exist_ok=True)
+
+    yield
 
 
 @pytest.fixture
