@@ -5,7 +5,8 @@ from pytest_mock import MockerFixture
 
 from stock_tracker.main import get_stock_price
 
-# Fixture 1: Mock just the session
+
+# Mock the session
 @pytest.fixture
 def mock_yfinance_session(mocker: MockerFixture) -> MagicMock:
     mock_session = mocker.MagicMock()
@@ -13,7 +14,7 @@ def mock_yfinance_session(mocker: MockerFixture) -> MagicMock:
     return mock_session
 
 
-# Fixture 2: Mock just the Ticker
+# Mock the ticker
 @pytest.fixture
 def mock_yfinance_ticker(mocker: MockerFixture) -> MagicMock:
     mock_ticker = mocker.MagicMock()
@@ -21,7 +22,7 @@ def mock_yfinance_ticker(mocker: MockerFixture) -> MagicMock:
     return mock_ticker
 
 
-# Parameterized test for different fast_info["last_price"] values
+# Parameterised test for different fast_info["last_price"] values
 @pytest.mark.parametrize(
     "last_price,expected_price,expect_error",
     [
