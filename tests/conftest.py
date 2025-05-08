@@ -30,6 +30,7 @@ def reset_app_config():
         AppConfig._reset()
 
 
+@pytest.fixture
 def app_config() -> AppConfig:
     """
     Load the AppConfig through the normal ConfigLoader mechanism using
