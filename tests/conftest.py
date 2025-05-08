@@ -109,13 +109,16 @@ def isolated_config_environment(tmp_path: Path, monkeypatch):
         with open(test_config_dir / log_config.name, "w") as dest_file:
             yaml.dump(content, dest_file)
 
+    # Store the original method to avoid recursion
+    original_load_merged_yaml = ConfigLoader._load_merged_yaml
+
+    # Define a wrapper that uses the test directory
+    def custom_load_merged_yaml(env, config_dir=None):
+        return original_load_merged_yaml(env, test_config_dir)
 
     # Patch ConfigLoader to use our test directory
     with patch(
-        "stock_tracker.config.ConfigLoader._load_merged_yaml",
-        side_effect=lambda env, config_dir=None: ConfigLoader._load_merged_yaml(
-            env, test_config_dir
-        ),
+        "stock_tracker.config.ConfigLoader._load_merged_yaml", side_effect=custom_load_merged_yaml
     ):
         yield {"config_dir": test_config_dir, "temp_dir": tmp_path}
 
