@@ -109,8 +109,6 @@ def isolated_config_environment(tmp_path: Path, monkeypatch):
         with open(test_config_dir / log_config.name, "w") as dest_file:
             yaml.dump(content, dest_file)
 
-    # Set ENV to test
-    monkeypatch.setenv("ENV", "test")
 
     # Patch ConfigLoader to use our test directory
     with patch(
