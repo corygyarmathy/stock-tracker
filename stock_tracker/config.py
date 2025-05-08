@@ -43,7 +43,6 @@ logger.debug(f"Loaded environment variables from selected env_file.")
 
 @dataclass
 class AppConfig:
-    project_root: Path
     env: str
     db_path: Path
     csv_path: Path
