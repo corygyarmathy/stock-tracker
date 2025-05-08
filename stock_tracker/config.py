@@ -16,15 +16,29 @@ from typing import (
 from stock_tracker.type_utils import convert_type
 
 
-# Optional: load .env if using python-dotenv
-try:
-    from dotenv import load_dotenv
 logger: logging.Logger = logging.getLogger(__name__)
 
-    env_file: str = ".env.test" if os.getenv("PYTEST_CURRENT_TEST") else ".env"
-    _ = load_dotenv(dotenv_path=env_file)
-except ImportError:
-    pass
+
+def load_environment_variables() -> bool:
+    """Load environment variables from the appropriate .env file."""
+    try:
+        from dotenv import load_dotenv
+
+        # Use .env.test when running under pytest
+        is_test_environment: bool = bool(os.getenv("PYTEST_CURRENT_TEST"))
+        env_file = ".env.test" if is_test_environment else ".env"
+        logger.debug(f"env_file is {env_file}")
+
+        # Load the environment file and return success/failure
+        return load_dotenv(dotenv_path=env_file)
+    except ImportError:
+        # Only catch ImportError for dotenv, not other import errors
+        return False
+
+
+# Load environment variables at module import time
+_ = load_environment_variables()
+logger.debug(f"Loaded environment variables from selected env_file.")
 
 
 @dataclass
