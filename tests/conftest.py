@@ -56,3 +56,13 @@ def temp_config_dir(tmp_path):
     )
 
     return config_dir
+def app_config() -> AppConfig:
+    """
+    Load the AppConfig through the normal ConfigLoader mechanism using
+    the actual config files.
+    """
+    config: AppConfig = ConfigLoader.load_app_config()
+    AppConfig.set(instance=config)
+    return AppConfig.get()
+
+
