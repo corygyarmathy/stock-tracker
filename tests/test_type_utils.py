@@ -47,5 +47,5 @@ def test_convert_type_unknown_type_object():
     class Dummy:
         pass
 
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         convert_type("value", Dummy | None)
