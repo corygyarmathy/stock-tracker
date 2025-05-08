@@ -13,7 +13,7 @@ from requests_ratelimiter import LimiterMixin, MemoryQueueBucket
 from stock_tracker.config import AppConfig
 from stock_tracker.db import Database
 
-logger = logging.getLogger("ticker_importer.tickers")
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class CachedLimiterSession(CacheMixin, LimiterMixin, Session):
