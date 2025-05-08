@@ -19,27 +19,8 @@ def test_load_app_config(app_config):
 
 
 
-def test_config_with_cli_overrides(monkeypatch, temp_config_dir):
-    monkeypatch.setenv("ENV", "dev")
-    monkeypatch.chdir(temp_config_dir.parent)
 
-    overrides = argparse.Namespace(
-        db_path="./cli_override.db",
-        log_level="WARNING",
-        yf_max_requests=None,
-        env=None,
-        csv_path=None,
-        log_config_path=None,
-        log_file_path=None,
-        yf_request_interval_seconds=None,
-        project_root=None,
-    )
-    override_dict = {k: v for k, v in vars(overrides).items() if v is not None}
-    config = ConfigLoader.load_app_config(overrides=override_dict)
 
-    assert config.db_path == Path("./cli_override.db")
-    assert config.log_level == "WARNING"
-    assert config.yf_max_requests == 100
 
 
 def test_missing_required_config(monkeypatch, tmp_path):
@@ -50,10 +31,16 @@ def test_missing_required_config(monkeypatch, tmp_path):
 
     monkeypatch.setenv("ENV", "dev")
     monkeypatch.chdir(tmp_path)
+def test_config_with_cli_overrides(config_with_cli_overrides):
+    """Test that CLI arguments properly override config values."""
+    overrides: dict[str, str | int] = {"log_level": "CRITICAL", "yf_max_requests": 5000}
 
     with pytest.raises(ValueError, match="Missing required config value: 'db_path'"):
         _ = ConfigLoader.load_app_config()
+    config: AppConfig = config_with_cli_overrides(overrides)
 
+    assert config.log_level == "CRITICAL"
+    assert config.yf_max_requests == 5000
 
 def test_invalid_type_in_config(monkeypatch, tmp_path):
     config_dir = tmp_path / "config"
