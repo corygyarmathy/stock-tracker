@@ -11,15 +11,22 @@ from stock_tracker.db import Database
 
 
 @pytest.fixture(scope="session", autouse=True)
-def ensure_test_environment(monkeypatch):
+def ensure_test_environment():
     """Ensure we're using the test environment for all tests."""
-    # This will override any ENV setting from .env.test if needed
-    monkeypatch.setenv("ENV", "test")
+    # Use os.environ directly instead of monkeypatch for session-scoped fixture
+    original_env = os.environ.get("ENV")
+    os.environ["ENV"] = "test"
 
     # Create required test fixtures directory if it doesn't exist
     # Path("tests/fixtures").mkdir(parents=True, exist_ok=True)
 
     yield
+
+    # Restore original environment variable if it existed
+    if original_env is not None:
+        os.environ["ENV"] = original_env
+    else:
+        _ = os.environ.pop("ENV", None)
 
 
 @pytest.fixture(scope="function", autouse=True)
