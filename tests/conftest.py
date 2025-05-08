@@ -41,6 +41,15 @@ def app_config() -> AppConfig:
 
 
 @pytest.fixture
+def mock_yfinance_session():
+    """Create a mocked yfinance session."""
+    with patch("stock_tracker.tickers.get_yfinance_session") as mock_session:
+        session: MagicMock = MagicMock()
+        mock_session.return_value = session
+        yield session
+
+
+@pytest.fixture
 def isolated_config_environment(tmp_path: Path, monkeypatch):
     """
     Create a completely isolated test environment with copied config files.
