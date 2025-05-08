@@ -4,5 +4,5 @@ csv_path: "tests/fixtures/test_import.csv"
 log_config_path: "config/logging_config.yaml"
 log_file_path: "logs/test.log"
 log_level: "DEBUG"
-yf_max_requests: "2000"
-yf_request_interval_seconds: "0.1"
+yf_max_requests: 2000
+yf_request_interval_seconds: 0.1

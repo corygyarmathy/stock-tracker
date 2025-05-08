@@ -14,8 +14,8 @@ def test_load_app_config(app_config):
     assert isinstance(app_config, AppConfig)
     assert app_config.env == "test"
     assert app_config.log_level == "DEBUG"
-    assert app_config.yf_max_requests == "2000"
-    assert app_config.yf_request_interval_seconds == "0.1"
+    assert app_config.yf_max_requests == 2000
+    assert app_config.yf_request_interval_seconds == 0.1
 
 
 def test_isolated_config_modifications(isolated_config_environment):
@@ -45,7 +45,6 @@ def test_config_with_cli_overrides(config_with_cli_overrides):
     config: AppConfig = config_with_cli_overrides(overrides)
 
     assert config.log_level == "CRITICAL"
-    assert config.yf_max_requests == "5000"
 
 def test_invalid_type_in_config(monkeypatch, tmp_path):
     config_dir = tmp_path / "config"
@@ -64,6 +63,7 @@ yf_request_interval_seconds: 1.5
 
     monkeypatch.setenv("ENV", "dev")
     monkeypatch.chdir(tmp_path)
+    assert config.yf_max_requests == 5000
 
     with pytest.raises(TypeError, match="Invalid type for 'yf_max_requests'"):
 def test_missing_required_config(isolated_config_environment):

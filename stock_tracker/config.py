@@ -49,8 +49,8 @@ class AppConfig:
     log_config_path: Path
     log_file_path: Path
     log_level: str
-    yf_max_requests: str
-    yf_request_interval_seconds: str
+    yf_max_requests: int
+    yf_request_interval_seconds: float
 
     _instance: ClassVar[Self | None] = None  # private singleton instance
 
