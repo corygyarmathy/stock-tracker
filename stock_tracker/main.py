@@ -15,7 +15,7 @@ from stock_tracker.utils import setup_logging
 
 from stock_tracker.config import AppConfig, ConfigLoader
 
-logger: logging.Logger = logging.getLogger("main")
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def parse_orders(csv_path: str) -> list[dict[str, str]]:

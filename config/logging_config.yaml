@@ -17,30 +17,18 @@ handlers:
     class: logging.FileHandler
     level: DEBUG
     formatter: detailed
-    filename: tickers.log
+    filename: stock_tracker.log
     mode: a
 
 loggers:
-  main:
-    level: DEBUG
+  stock_tracker:
+    level: WARNING
     handlers: [console, file]
     propagate: no
 
-  tickers:
-    level: DEBUG
-    handlers: [console, file]
-    propagate: no
-
-  db:
-    level: DEBUG
-    handlers: [console, file]
-    propagate: no
-
-  refresh_splits:
-    level: DEBUG
-    handlers: [console, file]
-    propagate: no
+  stock_tracker.db:
+    level: INFO
 
 root:
-  level: INFO
+  level: ERROR
   handlers: [console]
