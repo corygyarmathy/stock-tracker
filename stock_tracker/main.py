@@ -83,66 +83,53 @@ def main() -> None:
     config = ConfigLoader.load_app_config(overrides=overrides)
     AppConfig.set(config)
 
+    # Set up app
     setup_logging(config.log_config_path)
-
     session: CachedLimiterSession = get_yfinance_session()
+    db: Database = Database(config.db_path)
 
-    with Database(config.db_path) as db:
-        _ = db.create_tables_if_not_exists()
+    run_app(config, session, db)
 
-    import_valid_tickers(config.csv_path, session)
 
-    # orders: list[dict[str, str]] = parse_orders(csv_path="orders.csv")
-    # ticker_splits = yf.Ticker("APPL", session).splits
-    # data: yf.Ticker = yf.Ticker("IVV")
+def run_app(config: AppConfig, session: CachedLimiterSession, db: Database):
+    """Run the application with explicit dependencies."""
+    try:
+        db.create_tables_if_not_exists()
 
-    # for order in orders:
-    #     print(search_ticker(order["ticker"], session))
-    #     print(f"Processing order: {order['ticker']}")
-    #     print(f"Quantity purchased: {order['quantity']}")
-    #     print(f"Purchase price: {order['price_paid']}")
-    #     print(f"Purchase date: {order['date']}")
-    #     print(f"Exchange: {order['exchange']}")
-    #     current_price, error = get_stock_price(
-    #         ticker=order["ticker"], exchange=order["exchange"], session=session
-    #     )
-    #     if not current_price:
-    #         print(f"{error}")
-    #         continue
-    #
-    #     print(f"Current price: {round(current_price, 2)}")
-    #     capital_gain: float = calculate_order_capital_gains(order, current_price)
-    #     print(f"Capital Gains: {round(capital_gain, 2)}")
-    #     print()
-    #
-    # print("Complete!")
-    #
+        import_valid_tickers(config.csv_path, session)
+        # performance = calculate_portfolio_performance(db, session)
 
-    # INFO: yf.Ticker("IVV")
-    # ticker str = 'IVV'
+        # Display results
+        # display_performance(performance)
+    finally:
+        db.close()
 
-    # INFO: yf.Ticker.fast_info Example ("IVV.AX")
-    # currency str = 'AUD'
-    # day_high float = 55.939998626708984
-    # day_low float = 55.119998931884766
-    # exchange str = 'ASX'
-    # fifty_day_average float = 60.607799987792966
-    # last_price float = 55.939998626708984
-    # last_volume int = 441315
-    # market_cap NoneType = None
-    # open float = 55.189998626708984
-    # previous_close float = 55.79999923706055
-    # proxy NoneType = None
-    # quote_type str = 'ETF'
-    # regular_market_previous_close float = 55.79999923706055
-    # shares NoneType = None
-    # ten_day_average_volume int = 1779005
-    # three_month_average_volume int = 596180
-    # timezone str = 'Australia/Sydney'
-    # two_hundred_day_average float = 59.271899967193605
-    # year_change float = 0.08368848865194049
-    # year_high float = 65.2699966430664
-    # year_low float = 51.369998931884766
+
+# INFO: yf.Ticker("IVV")
+# ticker str = 'IVV'
+
+# INFO: yf.Ticker.fast_info Example ("IVV.AX")
+# currency str = 'AUD'
+# day_high float = 55.939998626708984
+# day_low float = 55.119998931884766
+# exchange str = 'ASX'
+# fifty_day_average float = 60.607799987792966
+# last_price float = 55.939998626708984
+# last_volume int = 441315
+# market_cap NoneType = None
+# open float = 55.189998626708984
+# previous_close float = 55.79999923706055
+# proxy NoneType = None
+# quote_type str = 'ETF'
+# regular_market_previous_close float = 55.79999923706055
+# shares NoneType = None
+# ten_day_average_volume int = 1779005
+# three_month_average_volume int = 596180
+# timezone str = 'Australia/Sydney'
+# two_hundred_day_average float = 59.271899967193605
+# year_change float = 0.08368848865194049
+# year_high float = 65.2699966430664
+# year_low float = 51.369998931884766
 
 
 if __name__ == "__main__":
