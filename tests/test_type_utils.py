@@ -30,7 +30,7 @@ def test_convert_type_union_fallback_order():
 
     # Should raise because neither str nor Path are convertible from bool
     with pytest.raises(ValueError):
-        convert_type(True, str | Path)
+        convert_type(True, dict | Path)
 
 
 def test_convert_type_invalid_bool():
