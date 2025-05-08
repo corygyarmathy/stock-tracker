@@ -4,6 +4,7 @@ import pytest
 import yaml
 
 from stock_tracker.config import AppConfig
+from stock_tracker.db import Database
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_environment(monkeypatch):
     """Ensure we're using the test environment for all tests."""
@@ -48,6 +49,15 @@ def mock_yfinance_session():
         session: MagicMock = MagicMock()
         mock_session.return_value = session
         yield session
+
+
+@pytest.fixture
+def test_db():
+    """Create an in-memory test database."""
+    db_path: Path = AppConfig.get().db_path
+    with Database(db_path) as db:
+        db.create_tables_if_not_exists()
+        yield db
 
 
 @pytest.fixture
