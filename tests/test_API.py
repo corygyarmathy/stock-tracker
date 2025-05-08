@@ -6,14 +6,6 @@ from pytest_mock import MockerFixture
 from stock_tracker.main import get_stock_price
 
 
-# Mock the session
-@pytest.fixture
-def mock_yfinance_session(mocker: MockerFixture) -> MagicMock:
-    mock_session = mocker.MagicMock()
-    _ = mocker.patch("stock_tracker.main.get_yfinance_session", return_value=mock_session)
-    return mock_session
-
-
 # Mock the ticker
 @pytest.fixture
 def mock_yfinance_ticker(mocker: MockerFixture) -> MagicMock:
