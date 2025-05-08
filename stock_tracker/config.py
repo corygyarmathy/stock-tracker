@@ -1,4 +1,5 @@
 # config.py
+import logging
 import os
 import yaml
 import argparse
@@ -18,6 +19,7 @@ from stock_tracker.type_utils import convert_type
 # Optional: load .env if using python-dotenv
 try:
     from dotenv import load_dotenv
+logger: logging.Logger = logging.getLogger(__name__)
 
     env_file: str = ".env.test" if os.getenv("PYTEST_CURRENT_TEST") else ".env"
     _ = load_dotenv(dotenv_path=env_file)
