@@ -9,16 +9,14 @@ import yaml
 from stock_tracker.config import AppConfig, ConfigLoader
 
 
-def test_load_app_config(monkeypatch, temp_config_dir):
-    monkeypatch.setenv("ENV", "dev")
-    monkeypatch.chdir(temp_config_dir.parent)
+def test_load_app_config(app_config):
+    """Test that config is properly loaded from actual files."""
+    assert isinstance(app_config, AppConfig)
+    assert app_config.env == "test"
+    assert app_config.log_level == "DEBUG"
+    assert app_config.yf_max_requests == 100
+    assert app_config.yf_request_interval_seconds == 1.5
 
-    config = ConfigLoader.load_app_config()
-    assert isinstance(config, AppConfig)
-    assert config.env == "dev"
-    assert config.log_level == "DEBUG"  # overridden
-    assert config.yf_max_requests == 100
-    assert config.yf_request_interval_seconds == 1.5
 
 
 def test_config_with_cli_overrides(monkeypatch, temp_config_dir):
