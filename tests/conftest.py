@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from stock_tracker.config import AppConfig
+from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_environment(monkeypatch):
