@@ -151,8 +151,10 @@ class ConfigLoader:
         # If provided CLI overrides, nested (deep) merge with merged_config
         if overrides:
             merged_config = ConfigLoader._deep_merge(merged_config, overrides)
-
-        return ConfigLoader._dict_to_config(merged_config, AppConfig)
+        try:
+            return ConfigLoader._dict_to_config(merged_config, AppConfig)
+        except TypeError:
+            raise TypeError
 
     @staticmethod
     def build_arg_parser(config_class: type[AppConfig]) -> argparse.ArgumentParser:
