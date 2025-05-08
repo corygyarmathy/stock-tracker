@@ -65,16 +65,22 @@ class AppConfig:
     def set(cls, instance: Self) -> None:
         """Set the singleton instance from an AppConfig object. Can only be set once."""
         if cls._instance is not None:
-            raise RuntimeError("AppConfig instance already set.")
+            logger.error(f"AppConfig.set() called when AppConfig instance was already set.")
+            raise RuntimeError("AppConfig.set() called when AppConfig instance was already set.")
+        logger.debug("Setting AppConfig._instance")
         cls._instance = instance
 
     @classmethod
     def _reset(cls) -> None:
         """Testing-only method: reset the singleton instance."""
         if os.getenv("ENV") != "test":
-            raise RuntimeError(
-                "AppConfig._reset() should only be used in test environment."
+            logger.error(
+                "AppConfig._reset() called when ENV != test. Should only be used in testing ENV."
             )
+            raise RuntimeError(
+                "AppConfig._reset() called when ENV != test. Should only be used in testing ENV."
+            )
+        logger.debug("Resetting AppConfig._instance")
         cls._instance = None
 
 
