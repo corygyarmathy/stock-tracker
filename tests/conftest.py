@@ -16,6 +16,18 @@ def ensure_test_environment(monkeypatch):
     yield
 
 
+@pytest.fixture(scope="function", autouse=True)
+def reset_app_config():
+    """Reset AppConfig singleton before and after each test."""
+    # Reset the singleton before test
+    if hasattr(AppConfig, "_instance") and AppConfig._instance is not None:
+        AppConfig._reset()
+
+    yield
+
+    # Reset after test
+    if hasattr(AppConfig, "_instance") and AppConfig._instance is not None:
+        AppConfig._reset()
 @pytest.fixture
 def temp_config_dir(tmp_path):
     config_dir = tmp_path / "config"
