@@ -18,10 +18,24 @@ def test_load_app_config(app_config):
     assert app_config.yf_request_interval_seconds == 1.5
 
 
+def test_isolated_config_modifications(isolated_config_environment):
+    """Test with modified config files."""
+    config_dir = isolated_config_environment["config_dir"]
 
+    # Modify a config file for this specific test
+    test_config_path = config_dir / "config.test.yaml"
+    with open(test_config_path, "r") as f:
+        config_data = yaml.safe_load(f) or {}
 
+    # Change a value
+    config_data["log_level"] = "TRACE"
 
+    with open(test_config_path, "w") as f:
+        yaml.dump(config_data, f)
 
+    # Now load the config, which will use our modified file
+    config: AppConfig = ConfigLoader.load_app_config()
+    assert config.log_level == "TRACE"
 
 def test_missing_required_config(monkeypatch, tmp_path):
     config_dir = tmp_path / "config"
