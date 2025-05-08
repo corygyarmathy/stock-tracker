@@ -18,9 +18,7 @@ def convert_type(value: Any, expected_type: type | types.UnionType) -> Any:
                 return convert_type(value, subtype)
             except Exception:
                 continue
-        raise ValueError(
-            f"Cannot convert {value!r} to any of {get_args(expected_type)}"
-        )
+        raise ValueError(f"Cannot convert {value!r} to any of {get_args(expected_type)}")
 
     # Handle Path conversion
     if expected_type is Path:

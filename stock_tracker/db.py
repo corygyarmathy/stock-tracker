@@ -44,9 +44,7 @@ class Database:
             _ = self.conn.execute("BEGIN")
             result: sqlite3.Cursor = self.cursor.execute(query, params)
             self.commit()
-            self.logger.info(
-                f"Query executed successfully. Rows affected: {self.cursor.rowcount}"
-            )
+            self.logger.info(f"Query executed successfully. Rows affected: {self.cursor.rowcount}")
             return result
         except sqlite3.Error as e:
             self.conn.rollback()
@@ -74,9 +72,7 @@ class Database:
 
         if not param_list:
             self.logger.warning("executemany called with an empty parameter list.")
-            return (
-                self.cursor
-            )  # Or perhaps raise an exception depending on desired behavior
+            return self.cursor  # Or perhaps raise an exception depending on desired behavior
 
         first_params = param_list[0] if param_list else None
         using_named_placeholders: bool = ":" in query
@@ -158,16 +154,12 @@ class Database:
         """Returns the first row of data from the latest DB query."""
         return self.cursor.fetchone()
 
-    def query_one(
-        self, query: str, params: Sequence[Any] | None = None
-    ) -> sqlite3.Row | None:
+    def query_one(self, query: str, params: Sequence[Any] | None = None) -> sqlite3.Row | None:
         """Executes a SELECT query and returns a single result."""
         _ = self.execute(query, params)
         return self.fetchone()
 
-    def query_all(
-        self, query: str, params: Sequence[Any] | None = None
-    ) -> list[sqlite3.Row]:
+    def query_all(self, query: str, params: Sequence[Any] | None = None) -> list[sqlite3.Row]:
         """Executes a SELECT query and returns all results."""
         _ = self.execute(query, params)
         return self.fetchall()

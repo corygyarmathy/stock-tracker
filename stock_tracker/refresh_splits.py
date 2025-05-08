@@ -33,9 +33,7 @@ def insert_new_splits(
     formatted_splits: dict[str, float] = format_split_dates(splits)
     inserted = 0
     for date_str, ratio in formatted_splits.items():
-        logging.debug(
-            f"Inserting split for {ticker}.{exchange} on {date_str} ratio: {ratio}"
-        )
+        logging.debug(f"Inserting split for {ticker}.{exchange} on {date_str} ratio: {ratio}")
         try:
             _ = cursor.execute(
                 """
@@ -51,9 +49,7 @@ def insert_new_splits(
     return inserted
 
 
-def recalculate_adjusted_shares(
-    cursor: sqlite3.Cursor, ticker: str, exchange: str
-) -> int:
+def recalculate_adjusted_shares(cursor: sqlite3.Cursor, ticker: str, exchange: str) -> int:
     _ = cursor.execute(
         """
         SELECT id, original_shares, order_date FROM orders
@@ -125,18 +121,14 @@ def refresh_splits() -> None:
             if date not in fetch_stored_split_dates(cursor, ticker, exchange)
         }
 
-        inserted_count = insert_new_splits(
-            cursor, ticker, exchange, pd.Series(new_splits)
-        )
+        inserted_count = insert_new_splits(cursor, ticker, exchange, pd.Series(new_splits))
         total_inserted += inserted_count
 
         updated_count = recalculate_adjusted_shares(cursor, ticker, exchange)
 
         if inserted_count > 0:
             logging.info(f"Inserted {inserted_count} new split(s) for {full_symbol}.")
-        logging.info(
-            f"Updated adjusted shares for {updated_count} order(s) of {full_symbol}."
-        )
+        logging.info(f"Updated adjusted shares for {updated_count} order(s) of {full_symbol}.")
 
         conn.commit()
         conn.close()

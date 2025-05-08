@@ -81,9 +81,7 @@ class AppConfig:
 # TODO: convert into generic ConfigLoader, not just for AppConfig
 class ConfigLoader:
     @staticmethod
-    def _load_merged_yaml(
-        env: str, config_dir: Path = Path("config")
-    ) -> dict[str, Any]:
+    def _load_merged_yaml(env: str, config_dir: Path = Path("config")) -> dict[str, Any]:
         """Get appropriate config.{env}.yaml files as a dict, merging nested items."""
         base_path: Path = config_dir / "config.base.yaml"
         env_path: Path = config_dir / f"config.{env}.yaml"
@@ -104,20 +102,14 @@ class ConfigLoader:
         """Recursively merge two dictionaries. Values in `override` take precedence."""
         result: dict[str, Any] = base.copy()
         for key, value in override.items():
-            if (
-                key in result
-                and isinstance(result[key], dict)
-                and isinstance(value, dict)
-            ):
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = ConfigLoader._deep_merge(result[key], value)
             else:
                 result[key] = value
         return result
 
     @staticmethod
-    def _dict_to_config(
-        data: dict[str, Any], config_class: type[AppConfig]
-    ) -> AppConfig:
+    def _dict_to_config(data: dict[str, Any], config_class: type[AppConfig]) -> AppConfig:
         """Build AppConfig class object from input dict, validating and coercing data to fit the defined parameter types."""
         type_hints: dict[str, Any] = get_type_hints(config_class)
         init_args: dict[str, Any] = {}
@@ -159,18 +151,14 @@ class ConfigLoader:
     @staticmethod
     def build_arg_parser(config_class: type[AppConfig]) -> argparse.ArgumentParser:
         """Dynamically build an ArgumentParser based on a dataclass like AppConfig."""
-        parser: argparse.ArgumentParser = argparse.ArgumentParser(
-            description="Stock Tracker CLI"
-        )
+        parser: argparse.ArgumentParser = argparse.ArgumentParser(description="Stock Tracker CLI")
 
         for field in fields(config_class):
             # Skip private fields and ClassVars
             if field.name.startswith("_") or get_origin(field.type) is ClassVar:
                 continue
 
-            arg_name: str = (
-                f"--{field.name.replace('_', '-')}"  # eg. db_path -> --db-path
-            )
+            arg_name: str = f"--{field.name.replace('_', '-')}"  # eg. db_path -> --db-path
             arg_type = field.type
 
             # Optional:  make type adjustments here as needed
@@ -178,9 +166,7 @@ class ConfigLoader:
                 arg_type = str  # Accept paths as strings from CLI
             elif arg_type is bool:
                 # Special handling for booleans: use 'store_true' action
-                _ = parser.add_argument(
-                    arg_name, action="store_true", help=f"Enable {field.name}"
-                )
+                _ = parser.add_argument(arg_name, action="store_true", help=f"Enable {field.name}")
                 continue
 
             _ = parser.add_argument(

@@ -47,9 +47,7 @@ def get_yfinance_session(
     )
 
 
-def is_valid_ticker(
-    symbol: str, exchange: str, session: CachedLimiterSession
-) -> yf.Ticker | None:
+def is_valid_ticker(symbol: str, exchange: str, session: CachedLimiterSession) -> yf.Ticker | None:
     full_symbol: str = f"{symbol}.{exchange}"
     try:
         ticker: yf.Ticker = yf.Ticker(full_symbol, session)
@@ -63,9 +61,7 @@ def is_valid_ticker(
         return None
 
 
-def search_ticker_quotes(
-    ticker: str, session: CachedLimiterSession
-) -> list[dict[str, Any]]:
+def search_ticker_quotes(ticker: str, session: CachedLimiterSession) -> list[dict[str, Any]]:
     # INFO: Example return of search['quotes']
     # 'exchange' str = 'BTS'
     # 'shortname' str = 'iShares Trust iShares S&P 500 B'
@@ -116,9 +112,7 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
         symbol: str = str(item.get("symbol", ""))[: col_widths["symbol"]]
         exchange: str = str(item.get("exchange", ""))[: col_widths["exchange"]]
         quote_type: str = str(item.get("quoteType", ""))[: col_widths["type"]]
-        name: str = str(item.get("shortname") or item.get("longname", ""))[
-            : col_widths["name"]
-        ]
+        name: str = str(item.get("shortname") or item.get("longname", ""))[: col_widths["name"]]
 
         info: str = (
             f"{str(idx):<{col_widths['index']}} "
