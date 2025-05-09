@@ -241,10 +241,4 @@ class Database:
             PRIMARY KEY(base_currency, target_currency, date)
         );
         """)
-        # Useful indexes
-        # TODO: investigate these further
-        _ = self.execute("""
-        CREATE INDEX idx_orders_stock_id ON stock_orders(stock_id);
-        CREATE INDEX idx_prices_stock_date ON historical_prices(stock_id, date);
-        CREATE INDEX idx_fx_rates_date ON fx_rates(date);
-        """)
+        # TODO: investigate adding indexes
