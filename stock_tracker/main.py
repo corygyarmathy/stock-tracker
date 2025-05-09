@@ -1,16 +1,11 @@
 # Import libraries
 import logging
 
-import yfinance as yf
-from stock_tracker.db import Database
-from stock_tracker.tickers import (
-    import_valid_tickers,
-)
-
 from stock_tracker.config import AppConfig, ConfigLoader
+from stock_tracker.db import Database
+from stock_tracker.tickers import import_valid_tickers
 from stock_tracker.utils.setup_logging import setup_logging
-from stock_tracker.yfinance_api import get_yfinance_session, CachedLimiterSession
-
+from stock_tracker.yfinance_api import CachedLimiterSession, get_yfinance_session
 
 logger: logging.Logger = logging.getLogger(__name__)
 
