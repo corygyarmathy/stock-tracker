@@ -8,7 +8,6 @@ import yaml
 
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
-from stock_tracker.models import CorporateAction
 from stock_tracker.repositories.corporate_actions_repository import CorporateActionsRepository
 from stock_tracker.repositories.fx_rate_repository import FxRateRepository
 from stock_tracker.repositories.order_repository import OrderRepository
@@ -20,11 +19,8 @@ from stock_tracker.repositories.stock_repository import StockRepository
 def ensure_test_environment():
     """Ensure we're using the test environment for all tests."""
     # Use os.environ directly instead of monkeypatch for session-scoped fixture
-    original_env = os.environ.get("ENV")
+    original_env: str | None = os.environ.get("ENV")
     os.environ["ENV"] = "test"
-
-    # Create required test fixtures directory if it doesn't exist
-    # Path("tests/fixtures").mkdir(parents=True, exist_ok=True)
 
     yield
 
