@@ -73,7 +73,7 @@ def test_db():
 
 
 @pytest.fixture
-def isolated_config_environment(tmp_path: Path, monkeypatch):
+def isolated_config_environment(tmp_path: Path):
     """
     Create a completely isolated test environment with copied config files.
     Use this when you need to modify config files for specific tests.
