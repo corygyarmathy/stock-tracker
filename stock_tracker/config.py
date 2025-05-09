@@ -153,8 +153,8 @@ class ConfigLoader:
             merged_config = ConfigLoader._deep_merge(merged_config, overrides)
         try:
             return ConfigLoader._dict_to_config(merged_config, AppConfig)
-        except TypeError:
-            raise TypeError
+        except TypeError as e:
+            raise TypeError(f"{e}")
 
     @staticmethod
     def build_arg_parser(config_class: type[AppConfig]) -> argparse.ArgumentParser:
