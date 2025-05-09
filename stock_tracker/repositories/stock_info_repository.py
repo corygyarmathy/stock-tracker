@@ -8,8 +8,8 @@ class StockInfoRepository:
     def __init__(self, db: Database):
         self.db: Database = db
 
-    def insert(self, stock_info: StockInfo) -> int:
-        cursor: Cursor = self.db.execute(
+    def insert(self, stock_info: StockInfo) -> None:
+        _ = self.db.execute(
             """
             INSERT INTO stock_info (stock_id, last_updated, current_price, market_cap, pe_ratio, dividend_yield)
             VALUES (:stock_id, :last_updated, :current_price, :market_cap, :pe_ratio, :dividend_yield)
