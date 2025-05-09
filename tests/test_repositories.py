@@ -5,6 +5,7 @@ import pytest
 from stock_tracker.config import AppConfig
 from stock_tracker.models import Stock, StockInfo, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
+from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
 
 
@@ -101,3 +102,24 @@ class TestOrderRepository:
         gains: float = order_repo.calculate_capital_gains(stock_obj.id)
         # Expected: 2*100 + 3*150 = 200 + 450 = 650
         assert gains == pytest.approx(650.0)
+
+
+class TestStockInfoRepository:
+    def test_insert_and_get_orders(
+        self, app_config: AppConfig, stock_info_repo: StockInfoRepository, stock_obj: Stock
+    ) -> None:
+        if stock_obj.id is None:
+            raise ValueError("stock_id has not been properly initialised.")
+        stock_info: StockInfo = StockInfo(
+            stock_id=stock_obj.id,
+            last_updated=datetime(2025, 1, 1, 9, 30),
+            current_price=200.0,
+            market_cap=5000.0,
+            pe_ratio=35.0,
+            dividend_yield=0.35,
+        )
+        assert stock_info.stock_id == stock_obj.id
+
+        stock_info_repo.insert(stock_info)
+
+        assert stock_info == stock_info_repo.get_by_stock_id(stock_info.stock_id)
