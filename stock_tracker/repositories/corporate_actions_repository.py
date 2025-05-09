@@ -1,0 +1,34 @@
+from stock_tracker.db import Database
+from stock_tracker.models import CorporateAction
+
+
+class CorporateActionsRepository:
+    def __init__(self, db: Database):
+        self.db = db
+
+    def insert(self, action: CorporateAction) -> int:
+        cursor = self.db.execute(
+            """
+            INSERT INTO corporate_actions (stock_id, action_type, action_date, ratio, target_stock_id)
+            VALUES (:stock_id, :action_type, :action_date, :ratio, :target_stock_id)
+            """,
+            {
+                "stock_id": action.stock_id,
+                "action_type": action.action_type,
+                "action_date": action.action_date,
+                "ratio": action.ratio,
+                "target_stock_id": action.target_stock_id,
+            },
+        )
+        action.id = cursor.lastrowid
+        if action.id:
+            return action.id
+        else:
+            raise ValueError(f"Failed to obtain id of corporate action after inserting into db.")
+
+    def get_by_stock_id(self, stock_id: int) -> list[CorporateAction]:
+        rows = self.db.query_all(
+            "SELECT id, stock_id, action_type, action_date, ratio, target_stock_id FROM corporate_actions WHERE stock_id = ?",
+            (stock_id,),
+        )
+        return [CorporateAction(**row) for row in rows]

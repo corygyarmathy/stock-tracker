@@ -1,0 +1,35 @@
+from stock_tracker.db import Database
+from stock_tracker.models import StockInfo
+
+
+class StockInfoRepository:
+    def __init__(self, db: Database):
+        self.db = db
+
+    def insert(self, stock_info: StockInfo) -> int:
+        cursor = self.db.execute(
+            """
+            INSERT INTO stock_info (stock_id, last_updated, current_price, market_cap, pe_ratio, dividend_yield)
+            VALUES (:stock_id, :last_updated, :current_price, :market_cap, :pe_ratio, :dividend_yield)
+            """,
+            {
+                "stock_id": stock_info.stock_id,
+                "last_updated": stock_info.last_updated,
+                "current_price": stock_info.current_price,
+                "market_cap": stock_info.market_cap,
+                "pe_ratio": stock_info.pe_ratio,
+                "dividend_yield": stock_info.dividend_yield,
+            },
+        )
+        stock_info.id = cursor.lastrowid
+        if stock_info.id:
+            return stock_info.id
+        else:
+            raise ValueError(f"Failed to obtain id of stock after inserting into db.")
+
+    def get_by_stock_id(self, stock_id: int) -> StockInfo | None:
+        row = self.db.query_one(
+            "SELECT id, stock_id, last_updated, current_price, market_cap, pe_ratio, dividend_yield FROM stock_info WHERE stock_id = ?",
+            (stock_id,),
+        )
+        return StockInfo(**row) if row else None

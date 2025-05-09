@@ -8,6 +8,8 @@ import yaml
 
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
+from stock_tracker.repositories.order_repository import OrderRepository
+from stock_tracker.repositories.stock_repository import StockRepository
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -70,6 +72,16 @@ def test_db():
     with Database(db_path) as db:
         db.create_tables_if_not_exists()
         yield db
+
+
+@pytest.fixture
+def stock_repo(test_db):
+    return StockRepository(test_db)
+
+
+@pytest.fixture
+def order_repo(test_db):
+    return OrderRepository(test_db)
 
 
 @pytest.fixture
