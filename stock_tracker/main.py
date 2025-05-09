@@ -9,9 +9,9 @@ from stock_tracker.db import Database
 from stock_tracker.tickers import (
     import_valid_tickers,
 )
-from stock_tracker.utils import setup_logging
 
 from stock_tracker.config import AppConfig, ConfigLoader
+from stock_tracker.utils.setup_logging import setup_logging
 from stock_tracker.yfinance_api import get_yfinance_session, CachedLimiterSession
 
 

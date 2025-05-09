@@ -13,7 +13,7 @@ from typing import (
     get_type_hints,
 )
 
-from stock_tracker.type_utils import convert_type
+from stock_tracker.utils.type_utils import convert_type
 
 
 logger: logging.Logger = logging.getLogger(__name__)

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from stock_tracker.type_utils import convert_type
+from stock_tracker.utils.type_utils import convert_type
 
 
 @pytest.mark.parametrize(
