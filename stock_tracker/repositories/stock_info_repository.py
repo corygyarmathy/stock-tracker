@@ -22,11 +22,6 @@ class StockInfoRepository:
                 "dividend_yield": stock_info.dividend_yield,
             },
         )
-        stock_info.id = cursor.lastrowid
-        if stock_info.id:
-            return stock_info.id
-        else:
-            raise ValueError(f"Failed to obtain id of stock after inserting into db.")
 
     def get_by_stock_id(self, stock_id: int) -> StockInfo | None:
         row: Row | None = self.db.query_one(
