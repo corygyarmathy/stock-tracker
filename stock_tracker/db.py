@@ -225,7 +225,7 @@ class Database:
             stock_id INTEGER NOT NULL,
             action_type TEXT NOT NULL, -- 'split', 'merger', 'acquisition', etc.
             action_date TEXT NOT NULL,
-            ratio REAL,                -- e.g. 2.0 for 2:1 split
+            ratio REAL,                -- e.g. 2.0 for 2;1 split
             target_stock_id INTEGER,   -- for mergers/acquisitions
             FOREIGN KEY(stock_id) REFERENCES stocks(id),
             FOREIGN KEY(target_stock_id) REFERENCES stocks(id)
