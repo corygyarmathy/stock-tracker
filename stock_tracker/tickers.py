@@ -105,35 +105,27 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
             print("Invalid input. Enter a number.")
 
 
-def import_valid_tickers(csv_path: str, db_path: str, session: CachedLimiterSession):
-    init_db(db_path)
-    df = pd.read_csv(csv_path)
+def import_valid_tickers(csv_path: Path, session: CachedLimiterSession):
+    df: pd.DataFrame = pd.read_csv(csv_path)
     inserted = 0
 
     for _, row in df.iterrows():
-        ticker = str(row["ticker"]).strip()
-        exchange = str(row["exchange"]).strip()
-        full_symbol = f"{ticker}.{exchange}"
-
-        if is_valid_ticker(ticker, exchange, session):
-            if save_ticker(db_path, ticker, exchange, full_symbol):
+        symbol: str = str(row["ticker"]).strip()
+        exchange: str = str(row["exchange"]).strip()
+        full_symbol: str = f"{symbol}.{exchange}"
+        ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
+        if not ticker:
+            logger.warning(f"Invalid ticker: {full_symbol}. Searching for alternatives...")
+            results = search_ticker_quotes(symbol, session)
+            match = prompt_user_to_select(results)
+            if match:
+                ticker = is_valid_ticker(symbol, exchange, session)
+            else:
+                logger.warning(f"Skipped: {symbol}.{exchange}")
+        if ticker:
+            if save_ticker(ticker):
                 inserted += 1
                 logger.info(f"Inserted {full_symbol}")
             continue
-
-        logger.warning(f"Invalid ticker: {full_symbol}. Searching for alternatives...")
-        results = search_ticker_quotes(ticker, session)
-        match = prompt_user_to_select(results)
-
-        if match:
-            symbol = match["symbol"]
-            exch = match.get("exchange", "N/A")
-            logger.info(f"User selected: {symbol} on {exch}")
-
-            if save_ticker(db_path, symbol, exch, f"{symbol}.{exch}"):
-                inserted += 1
-                logger.info(f"Inserted corrected: {symbol}.{exch}")
-        else:
-            logger.warning(f"Skipped: {ticker}.{exchange}")
 
     logger.info(f"Imported {inserted} tickers from {csv_path}")
