@@ -129,8 +129,7 @@ def config_with_cli_overrides() -> Callable[..., AppConfig]:
 
     def _config_with_overrides(overrides: dict[str, Any]) -> AppConfig:
         """Load config with the specified CLI overrides."""
-        with patch.dict(os.environ, {"ENV": "test"}):
-            config: AppConfig = ConfigLoader.load_app_config(overrides)
-            return config
+        config: AppConfig = ConfigLoader.load_app_config(overrides)
+        return config
 
     return _config_with_overrides
