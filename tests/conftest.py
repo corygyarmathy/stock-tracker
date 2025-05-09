@@ -65,7 +65,7 @@ def mock_yfinance_session():
 
 @pytest.fixture
 def test_db():
-    """Create an in-memory test database."""
+    """Create an in-memory test database. Prevents the need to reset the DB in-between tests."""
     db_path: Path = AppConfig.get().db_path
     with Database(db_path) as db:
         db.create_tables_if_not_exists()
