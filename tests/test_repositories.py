@@ -2,12 +2,15 @@ from datetime import datetime
 
 import pytest
 
-from stock_tracker.models import Stock, StockOrder
+from stock_tracker.config import AppConfig
+from stock_tracker.models import Stock, StockInfo, StockOrder
+from stock_tracker.repositories.order_repository import OrderRepository
+from stock_tracker.repositories.stock_repository import StockRepository
 
 
 @pytest.fixture()
-def stock_obj(app_config, stock_repo) -> Stock:
-    # Initialize stock before each test
+def stock_obj(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
+    # Initialise stock before each test
     stock: Stock = Stock(
         id=None, ticker="MSFT", exchange="NASDAQ", currency="USD", name="Microsoft Corp"
     )
@@ -16,7 +19,7 @@ def stock_obj(app_config, stock_repo) -> Stock:
 
 
 class TestStockRepository:
-    def test_insert_and_get(self, app_config, stock_repo):
+    def test_insert_and_get(self, app_config: AppConfig, stock_repo: StockRepository):
         stock: Stock = Stock(
             id=None, ticker="AAPL", exchange="NASDAQ", currency="USD", name="Apple Inc."
         )
@@ -32,7 +35,7 @@ class TestStockRepository:
         fetched2: Stock | None = stock_repo.get_by_ticker_exchange("AAPL", "NASDAQ")
         assert fetched2 == stock
 
-    def test_upsert_new_and_existing(self, app_config, stock_repo):
+    def test_upsert_new_and_existing(self, app_config: AppConfig, stock_repo: StockRepository):
         stock: Stock = Stock(
             id=None, ticker="GOOG", exchange="NASDAQ", currency="USD", name="Google LLC"
         )
@@ -48,7 +51,9 @@ class TestStockRepository:
 
 
 class TestOrderRepository:
-    def test_insert_and_get_orders(self, app_config, order_repo, stock_obj):
+    def test_insert_and_get_orders(
+        self, app_config: AppConfig, order_repo: OrderRepository, stock_obj: Stock
+    ):
         if stock_obj.id is None:
             raise ValueError("stock_id has not been properly initialised.")
         order: StockOrder = StockOrder(
@@ -68,7 +73,9 @@ class TestOrderRepository:
         assert len(orders) == 1
         assert orders[0] == order
 
-    def test_calculate_capital_gains(self, app_config, order_repo, stock_obj):
+    def test_calculate_capital_gains(
+        self, app_config: AppConfig, order_repo: OrderRepository, stock_obj: Stock
+    ):
         if stock_obj.id is None:
             raise ValueError("stock_id has not been properly initialised.")
 
