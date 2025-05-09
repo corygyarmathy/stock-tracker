@@ -74,7 +74,9 @@ class Database:
             self.logger.warning("executemany called with an empty parameter list.")
             return self.cursor  # Or perhaps raise an exception depending on desired behavior
 
-        first_params = param_list[0] if param_list else None
+        first_params: Sequence[Any] | Mapping[str, Any] | None = (
+            param_list[0] if param_list else None
+        )
         using_named_placeholders: bool = ":" in query
         using_positional_placeholders: bool = "?" in query
 
