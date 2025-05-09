@@ -98,7 +98,7 @@ class TestOrderRepository:
             ),
         ]
         for o in orders:
-            order_repo.insert(o)
+            _ = order_repo.insert(o)
         gains: float = order_repo.calculate_capital_gains(stock_obj.id)
         # Expected: 2*100 + 3*150 = 200 + 450 = 650
         assert gains == pytest.approx(650.0)
