@@ -1,4 +1,5 @@
-from sqlite3 import Cursor, Row
+from datetime import datetime
+from sqlite3 import Row
 from stock_tracker.db import Database
 from stock_tracker.models import StockInfo
 
@@ -28,4 +29,14 @@ class StockInfoRepository:
             "SELECT * FROM stock_info WHERE stock_id = ?",
             (stock_id,),
         )
-        return StockInfo(**row) if row else None
+        if row:
+            return StockInfo(
+                stock_id=row["stock_id"],
+                # Assumes storing purchase_datetime as an ISO8601 string ("%Y-%m-%d %H:%M:%S")
+                last_updated=datetime.strptime(row["last_updated"], "%Y-%m-%d %H:%M:%S"),
+                current_price=row["current_price"],
+                market_cap=row["market_cap"],
+                pe_ratio=row["pe_ratio"],
+                dividend_yield=row["dividend_yield"],
+            )
+        return None
