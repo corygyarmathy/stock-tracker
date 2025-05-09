@@ -25,7 +25,7 @@ class StockInfoRepository:
 
     def get_by_stock_id(self, stock_id: int) -> StockInfo | None:
         row: Row | None = self.db.query_one(
-            "SELECT id, stock_id, last_updated, current_price, market_cap, pe_ratio, dividend_yield FROM stock_info WHERE stock_id = ?",
+            "SELECT * FROM stock_info WHERE stock_id = ?",
             (stock_id,),
         )
         return StockInfo(**row) if row else None
