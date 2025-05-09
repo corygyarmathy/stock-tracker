@@ -35,7 +35,7 @@ class StockInfo:
 
 
 @dataclass
-class CorporateActions:
+class CorporateAction:
     id: int | None
     stock_id: int
     action_type: str
@@ -45,7 +45,7 @@ class CorporateActions:
 
 
 @dataclass
-class FxRates:
+class FxRate:
     base_currency: str
     target_currency: str
     date: datetime
