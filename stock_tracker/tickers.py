@@ -41,8 +41,9 @@ def search_ticker_quotes(ticker: str, session: CachedLimiterSession) -> list[dic
     # 'isYahooFinance' bool = True
 
     try:
-        result = yf.Search(
-            ticker, max_results=20, news_count=0, lists_count=0, session=session
+        logger.debug(f"Searching for  tickert which match: {ticker}")
+        result: yf.Search = yf.Search(
+            query=ticker, max_results=20, news_count=0, lists_count=0, session=session
         )
         return result.quotes
     except Exception as e:
