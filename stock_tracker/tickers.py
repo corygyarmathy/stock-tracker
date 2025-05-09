@@ -106,6 +106,15 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
             print("Invalid input. Enter a number.")
 
 
+def save_ticker(ticker: yf.Ticker):
+    db_path: Path = AppConfig.get().db_path
+    with Database(db_path) as db:
+        _ = db.execute(
+            query="INSERT INTO tickers (ticker, exchange) VALUES (?, ?)",
+            params=(ticker.ticker, ticker.fast_info.exchange),
+        )
+
+
 def import_valid_tickers(csv_path: Path, session: CachedLimiterSession):
     df: pd.DataFrame = pd.read_csv(csv_path)
     inserted = 0
