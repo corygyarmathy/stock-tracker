@@ -1,8 +1,12 @@
+import logging
+
 import yfinance as yf
 from pyrate_limiter import Duration, Limiter, RequestRate
 from requests import Session
 from requests_cache import CacheMixin, SQLiteCache
 from requests_ratelimiter import LimiterMixin, MemoryQueueBucket
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class CachedLimiterSession(CacheMixin, LimiterMixin, Session):
