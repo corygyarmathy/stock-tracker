@@ -94,11 +94,12 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
             choice_str: str | None = input(
                 "Enter the number of the correct symbol (or press Enter to skip): "
             ).strip()
-            if not choice:
+
+            if not choice_str:
                 return None
-            choice = int(choice)
-            if 1 <= choice <= len(results):
-                return results[choice - 1]
+            choice_int: int = int(choice_str)
+            if 1 <= choice_int <= len(results):
+                return results[choice_int - 1]
             else:
                 print(f"Please enter a number between 1 and {len(results)}.")
         except ValueError:
