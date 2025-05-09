@@ -7,13 +7,13 @@ from typing import Any
 import yfinance as yf
 from stock_tracker.db import Database
 from stock_tracker.tickers import (
-    CachedLimiterSession,
-    get_yfinance_session,
     import_valid_tickers,
 )
 from stock_tracker.utils import setup_logging
 
 from stock_tracker.config import AppConfig, ConfigLoader
+from stock_tracker.yfinance_api import get_yfinance_session, CachedLimiterSession
+
 
 logger: logging.Logger = logging.getLogger(__name__)
 
