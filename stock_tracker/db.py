@@ -60,7 +60,7 @@ class Database:
     def executemany(
         self,
         query: str,
-        param_list: Sequence[Sequence[Any] | Sequence[Mapping[str, Any]]],
+        param_list: Sequence[Sequence[Any] | Mapping[str, Any]],
     ) -> sqlite3.Cursor:
         """
         Executes a SQL query for multiple sets of parameters.
