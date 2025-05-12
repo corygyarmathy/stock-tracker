@@ -1,3 +1,4 @@
+from sqlite3 import Row
 from stock_tracker.db import Database
 from stock_tracker.models import Stock
 from stock_tracker.utils.model_utils import ModelFactory
@@ -40,7 +41,7 @@ class StockRepository:
         return ModelFactory.create_from_row(Stock, row)
 
     def get_by_id(self, stock_id: int) -> Stock | None:
-        row = self.db.query_one(
+        row: Row | None = self.db.query_one(
             "SELECT * FROM stocks WHERE id = ?",
             (stock_id,),
         )
