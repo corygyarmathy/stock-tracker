@@ -1,9 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 
 from stock_tracker.config import AppConfig
-from stock_tracker.models import Stock, StockInfo, StockOrder
+from stock_tracker.models import CorporateAction, FxRate, Stock, StockInfo, StockOrder
+from stock_tracker.repositories.corporate_actions_repository import CorporateActionRepository
+from stock_tracker.repositories.fx_rate_repository import FxRateRepository
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
@@ -123,3 +125,45 @@ class TestStockInfoRepository:
         stock_info_repo.insert(stock_info)
 
         assert stock_info == stock_info_repo.get_by_stock_id(stock_info.stock_id)
+
+
+class TestCorporateActionRepository:
+    def test_insert_and_get(
+        self, app_config: AppConfig, corp_action_repo: CorporateActionRepository, stock_obj: Stock
+    ) -> None:
+        if stock_obj.id is None:
+            raise ValueError("stock_id has not been properly initialised.")
+        corp_action: CorporateAction = CorporateAction(
+            id=None,
+            stock_id=stock_obj.id,
+            action_type="split",
+            action_date=date(2025, 1, 1),
+            ratio=2.0,
+            target_stock_id=stock_obj.id,
+        )
+
+        corp_action_id: int = corp_action_repo.insert(corp_action)
+        assert isinstance(corp_action_id, int)
+        assert corp_action.id == corp_action_id
+
+        corp_actions: list[CorporateAction] = corp_action_repo.get_by_stock_id(stock_obj.id)
+        assert len(corp_actions) == 1
+        assert corp_actions[0] == corp_action
+
+
+class TestFxRateRepository:
+    def test_insert_and_get_orders(
+        self, app_config: AppConfig, fx_rate_repo: FxRateRepository
+    ) -> None:
+        fx_rate: FxRate = FxRate(
+            base_currency="AUD",
+            target_currency="USD",
+            date=date(2025, 1, 1),
+            rate=0.6411,
+        )
+
+        fx_rate_repo.insert(fx_rate)
+
+        assert fx_rate == fx_rate_repo.get_rate(
+            fx_rate.base_currency, fx_rate.target_currency, fx_rate.date
+        )
