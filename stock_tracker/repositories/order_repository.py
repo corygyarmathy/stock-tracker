@@ -1,7 +1,7 @@
-from datetime import datetime
 from sqlite3 import Cursor, Row
 from stock_tracker.db import Database
 from stock_tracker.models import StockOrder
+from stock_tracker.utils.model_utils import ModelFactory
 
 
 class OrderRepository:
@@ -38,19 +38,7 @@ class OrderRepository:
             """,
             (stock_id,),
         )
-        return [
-            StockOrder(
-                id=row["id"],
-                stock_id=row["stock_id"],
-                # Assumes storing purchase_datetime as an ISO8601 string ("%Y-%m-%d %H:%M:%S")
-                purchase_datetime=datetime.strptime(row["purchase_datetime"], "%Y-%m-%d %H:%M:%S"),
-                quantity=row["quantity"],
-                price_paid=row["price_paid"],
-                fee=row["fee"],
-                note=row["note"],
-            )
-            for row in rows
-        ]
+        return ModelFactory.create_list_from_rows(StockOrder, rows)
 
     def calculate_capital_gains(self, stock_id: int) -> float:
         # Calculate capital gains for all orders related to stock_id

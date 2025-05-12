@@ -1,6 +1,7 @@
 from sqlite3 import Cursor
 from stock_tracker.db import Database
 from stock_tracker.models import FxRate
+from stock_tracker.utils.model_utils import ModelFactory
 
 
 class FxRateRepository:
@@ -26,4 +27,6 @@ class FxRateRepository:
             "SELECT id, base_currency, target_currency, date, rate FROM fx_rates WHERE base_currency = ? AND target_currency = ? AND date = ?",
             (base_currency, target_currency, date),
         )
-        return FxRate(**row) if row else None
+        if not row:
+            return None
+        return ModelFactory.create_from_row(FxRate, row)

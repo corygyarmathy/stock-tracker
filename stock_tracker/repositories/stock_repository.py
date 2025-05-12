@@ -1,5 +1,6 @@
 from stock_tracker.db import Database
 from stock_tracker.models import Stock
+from stock_tracker.utils.model_utils import ModelFactory
 
 
 class StockRepository:
@@ -34,14 +35,18 @@ class StockRepository:
             """,
             (ticker, exchange),
         )
-        return Stock(**row) if row else None
+        if not row:
+            return None
+        return ModelFactory.create_from_row(Stock, row)
 
     def get_by_id(self, stock_id: int) -> Stock | None:
         row = self.db.query_one(
             "SELECT id, ticker, exchange, currency, name FROM stocks WHERE id = ?",
             (stock_id,),
         )
-        return Stock(**row) if row else None
+        if not row:
+            return None
+        return ModelFactory.create_from_row(Stock, row)
 
     def upsert(self, stock: Stock) -> int:
         """

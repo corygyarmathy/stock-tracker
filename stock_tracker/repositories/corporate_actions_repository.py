@@ -1,5 +1,6 @@
 from stock_tracker.db import Database
 from stock_tracker.models import CorporateAction
+from stock_tracker.utils.model_utils import ModelFactory
 
 
 class CorporateActionsRepository:
@@ -31,4 +32,4 @@ class CorporateActionsRepository:
             "SELECT * FROM corporate_actions WHERE stock_id = ?",
             (stock_id,),
         )
-        return [CorporateAction(**row) for row in rows]
+        return ModelFactory.create_list_from_rows(CorporateAction, rows)
