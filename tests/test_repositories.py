@@ -21,6 +21,15 @@ def stock_obj(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
     return stock
 
 
+@pytest.fixture()
+def stock_obj_2(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
+    stock: Stock = Stock(
+        id=None, ticker="AAPL", exchange="NASDAQ", currency="USD", name="Apple Corp"
+    )
+    stock.id = stock_repo.insert(stock)  # Store stock ID
+    return stock
+
+
 class TestStockRepository:
     def test_insert_and_get(self, app_config: AppConfig, stock_repo: StockRepository):
         stock: Stock = Stock(
