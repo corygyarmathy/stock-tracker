@@ -1,3 +1,5 @@
+from datetime import datetime
+from sqlite3 import Cursor, Row
 from stock_tracker.db import Database
 from stock_tracker.models import CorporateAction
 from stock_tracker.utils.model_utils import ModelFactory
@@ -5,10 +7,10 @@ from stock_tracker.utils.model_utils import ModelFactory
 
 class CorporateActionRepository:
     def __init__(self, db: Database):
-        self.db = db
+        self.db: Database = db
 
     def insert(self, action: CorporateAction) -> int:
-        cursor = self.db.execute(
+        cursor: Cursor = self.db.execute(
             """
             INSERT INTO corporate_actions (stock_id, action_type, action_date, ratio, target_stock_id)
             VALUES (:stock_id, :action_type, :action_date, :ratio, :target_stock_id)

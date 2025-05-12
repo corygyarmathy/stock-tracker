@@ -27,7 +27,7 @@ class StockRepository:
             raise ValueError(f"Failed to obtain id of stock after inserting into db.")
 
     def get_by_ticker_exchange(self, ticker: str, exchange: str) -> Stock | None:
-        row = self.db.query_one(
+        row: Row | None = self.db.query_one(
             """
             SELECT id, ticker, exchange, currency, name
             FROM stocks

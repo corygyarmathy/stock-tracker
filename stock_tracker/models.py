@@ -1,6 +1,7 @@
 # models.py
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, date
+from sqlite3 import Row
 
 
 @dataclass
@@ -38,7 +39,7 @@ class CorporateAction:
     id: int | None
     stock_id: int
     action_type: str
-    action_date: datetime
+    action_date: date
     ratio: float
     target_stock_id: int  # For mergers/acquisitions
 
@@ -47,5 +48,5 @@ class CorporateAction:
 class FxRate:
     base_currency: str
     target_currency: str
-    date: datetime
+    date: date
     rate: float

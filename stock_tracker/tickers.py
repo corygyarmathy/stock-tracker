@@ -116,7 +116,7 @@ def save_ticker(ticker: yf.Ticker):
         )
 
 
-def import_valid_tickers(csv_path: Path, session: CachedLimiterSession):
+def import_valid_tickers(csv_path: Path, session: CachedLimiterSession) -> None:
     df: pd.DataFrame = pd.read_csv(csv_path)
     inserted = 0
 
@@ -130,7 +130,7 @@ def import_valid_tickers(csv_path: Path, session: CachedLimiterSession):
             results = search_ticker_quotes(symbol, session)
             match = prompt_user_to_select(results)
             if match:
-                ticker = is_valid_ticker(symbol, exchange, session)
+                ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
             else:
                 logger.warning(f"Skipped: {symbol}.{exchange}")
         if ticker:
