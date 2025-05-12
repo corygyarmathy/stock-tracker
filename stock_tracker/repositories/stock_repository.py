@@ -29,7 +29,7 @@ class StockRepository:
     def get_by_ticker_exchange(self, ticker: str, exchange: str) -> Stock | None:
         row: Row | None = self.db.query_one(
             """
-            SELECT id, ticker, exchange, currency, name
+            SELECT *
             FROM stocks
             WHERE ticker = ? AND exchange = ?
             """,
@@ -41,7 +41,7 @@ class StockRepository:
 
     def get_by_id(self, stock_id: int) -> Stock | None:
         row = self.db.query_one(
-            "SELECT id, ticker, exchange, currency, name FROM stocks WHERE id = ?",
+            "SELECT * FROM stocks WHERE id = ?",
             (stock_id,),
         )
         if not row:
