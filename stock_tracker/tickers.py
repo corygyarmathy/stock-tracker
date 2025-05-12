@@ -108,7 +108,6 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
             print("Invalid input. Enter a number.")
 
 
-def save_ticker(ticker: yf.Ticker):
 def yf_ticker_to_stock(ticker_obj: yf.Ticker) -> Stock:
     info: dict[str, Any] = ticker_obj.info
 
@@ -121,6 +120,7 @@ def yf_ticker_to_stock(ticker_obj: yf.Ticker) -> Stock:
     )
 
 
+def save_ticker(ticker: yf.Ticker) -> None:
     db_path: Path = AppConfig.get().db_path
     with Database(db_path) as db:
         _ = db.execute(
