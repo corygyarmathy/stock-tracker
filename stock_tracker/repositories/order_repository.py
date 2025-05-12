@@ -32,7 +32,7 @@ class OrderRepository:
     def get_orders_for_stock(self, stock_id: int) -> list[StockOrder]:
         rows: list[Row] = self.db.query_all(
             """
-            SELECT id, stock_id, purchase_datetime, quantity, price_paid, fee, note
+            SELECT *
             FROM stock_orders
             WHERE stock_id = ?
             """,
