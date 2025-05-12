@@ -13,7 +13,6 @@ from stock_tracker.repositories.stock_repository import StockRepository
 
 @pytest.fixture()
 def stock_obj(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
-    # Initialise stock before each test
     stock: Stock = Stock(
         id=None, ticker="MSFT", exchange="NASDAQ", currency="USD", name="Microsoft Corp"
     )
