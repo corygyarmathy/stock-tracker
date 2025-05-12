@@ -1,5 +1,7 @@
 # Import libraries
+from argparse import ArgumentParser, Namespace
 import logging
+from typing import Any
 
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
@@ -12,10 +14,10 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 def main() -> None:
     # Construct AppConfig private singelton instance
-    parser = ConfigLoader.build_arg_parser(AppConfig)
-    args = parser.parse_args()
-    overrides = ConfigLoader.args_to_overrides(args)
-    config = ConfigLoader.load_app_config(overrides=overrides)
+    parser: ArgumentParser = ConfigLoader.build_arg_parser(AppConfig)
+    args: Namespace = parser.parse_args()
+    overrides: dict[str, Any] = ConfigLoader.args_to_overrides(args)
+    config: AppConfig = ConfigLoader.load_app_config(overrides=overrides)
     AppConfig.set(config)
 
     # Set up app
@@ -26,7 +28,7 @@ def main() -> None:
     run_app(config, session, db)
 
 
-def run_app(config: AppConfig, session: CachedLimiterSession, db: Database):
+def run_app(config: AppConfig, session: CachedLimiterSession, db: Database) -> None:
     """Run the application with explicit dependencies."""
     try:
         db.create_tables_if_not_exists()
