@@ -8,6 +8,7 @@ import yfinance as yf
 
 from stock_tracker.config import AppConfig
 from stock_tracker.db import Database
+from stock_tracker.models import Stock
 from stock_tracker.yfinance_api import CachedLimiterSession
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -108,6 +109,18 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
 
 
 def save_ticker(ticker: yf.Ticker):
+def yf_ticker_to_stock(ticker_obj: yf.Ticker) -> Stock:
+    info: dict[str, Any] = ticker_obj.info
+
+    return Stock(
+        id=None,
+        ticker=info["symbol"].upper(),
+        exchange=info.get("exchange", "UNKNOWN"),
+        currency=info.get("currency", "USD"),
+        name=info.get("shortName") or info.get("longName"),
+    )
+
+
     db_path: Path = AppConfig.get().db_path
     with Database(db_path) as db:
         _ = db.execute(
