@@ -10,7 +10,7 @@ class FxRateRepository:
         self.db: Database = db
 
     def insert(self, fx_rate: FxRate) -> None:
-        cursor: Cursor = self.db.execute(
+        _ = self.db.execute(
             """
             INSERT INTO fx_rates (base_currency, target_currency, date, rate)
             VALUES (:base_currency, :target_currency, :date, :rate)
