@@ -23,9 +23,9 @@ class FxRateRepository:
             },
         )
 
-            "SELECT id, base_currency, target_currency, date, rate FROM fx_rates WHERE base_currency = ? AND target_currency = ? AND date = ?",
     def get_rate(self, base_currency: str, target_currency: str, date: date) -> FxRate | None:
         row: Row | None = self.db.query_one(
+            "SELECT * FROM fx_rates WHERE base_currency = ? AND target_currency = ? AND date = ?",
             (base_currency, target_currency, date),
         )
         if not row:
