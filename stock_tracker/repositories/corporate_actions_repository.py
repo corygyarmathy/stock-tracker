@@ -27,8 +27,8 @@ class CorporateActionsRepository:
             raise ValueError(f"Failed to obtain id of corporate action after inserting into db.")
 
     def get_by_stock_id(self, stock_id: int) -> list[CorporateAction]:
-        rows = self.db.query_all(
-            "SELECT id, stock_id, action_type, action_date, ratio, target_stock_id FROM corporate_actions WHERE stock_id = ?",
+        rows: list[Row] = self.db.query_all(
+            "SELECT * FROM corporate_actions WHERE stock_id = ?",
             (stock_id,),
         )
         return [CorporateAction(**row) for row in rows]
