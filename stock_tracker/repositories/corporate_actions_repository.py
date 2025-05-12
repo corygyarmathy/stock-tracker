@@ -3,7 +3,7 @@ from stock_tracker.models import CorporateAction
 from stock_tracker.utils.model_utils import ModelFactory
 
 
-class CorporateActionsRepository:
+class CorporateActionRepository:
     def __init__(self, db: Database):
         self.db = db
 

@@ -8,7 +8,7 @@ import yaml
 
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
-from stock_tracker.repositories.corporate_actions_repository import CorporateActionsRepository
+from stock_tracker.repositories.corporate_actions_repository import CorporateActionRepository
 from stock_tracker.repositories.fx_rate_repository import FxRateRepository
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_info_repository import StockInfoRepository
@@ -90,8 +90,8 @@ def order_repo(test_db) -> OrderRepository:
 
 
 @pytest.fixture
-def corp_actions_repo(test_db) -> CorporateActionsRepository:
-    return CorporateActionsRepository(test_db)
+def corp_action_repo(test_db) -> CorporateActionRepository:
+    return CorporateActionRepository(test_db)
 
 
 @pytest.fixture
