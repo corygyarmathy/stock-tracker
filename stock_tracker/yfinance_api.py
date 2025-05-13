@@ -18,6 +18,7 @@ def get_yfinance_session(
     cache_path: str = "yfinance.cache",
     requests_per_window: int = 2,
     window_seconds: int = 5,
+    cache_expiry: int = 3600,  # Default cache expiry of 1 hour
 ) -> CachedLimiterSession:
     """
     Returns a requests.Session with built-in caching and rate limiting,
@@ -26,6 +27,7 @@ def get_yfinance_session(
     :param cache_path: File path for SQLite cache
     :param requests_per_window: Number of requests allowed per window
     :param window_seconds: Length of rate limit window in seconds
+    :param cache_expiry: How long to keep cached responses (in seconds)
     :return: Configured CachedLimiterSession
     """
     rate: RequestRate = RequestRate(
@@ -36,7 +38,7 @@ def get_yfinance_session(
     return CachedLimiterSession(
         limiter=limiter,
         bucket_class=MemoryQueueBucket,
-        backend=SQLiteCache(db_path=cache_path),
+        backend=SQLiteCache(db_path=cache_path, expire_after=cache_expiry),
     )
 
 
