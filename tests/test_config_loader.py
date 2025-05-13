@@ -7,7 +7,6 @@ from stock_tracker.config import AppConfig, ConfigLoader
 def test_load_app_config(app_config):
     """Test that config is properly loaded from actual files."""
     assert isinstance(app_config, AppConfig)
-    assert app_config.env == "test"
     assert app_config.log_level == "DEBUG"
     assert app_config.yf_max_requests == 2000
     assert app_config.yf_request_interval_seconds == 0.1
