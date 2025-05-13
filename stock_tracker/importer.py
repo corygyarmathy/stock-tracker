@@ -188,6 +188,29 @@ def yf_ticker_to_stock(ticker: yf.Ticker) -> Stock | None:
     )
 
 
+def import_valid_stocks(
+    symbol: str, exchange: str, stock_repo: StockRepository, session: CachedLimiterSession
+) -> Stock | None:
+    ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
+    inserted = 0
+    if not ticker:
+        logger.warning(f"Invalid ticker: {symbol}.{exchange}. Searching for alternatives...")
+        results = search_ticker_quotes(symbol, session)
+        match = prompt_user_to_select(results)
+        if match:
+            ticker = is_valid_ticker(symbol, exchange, session)
+        else:
+            logger.warning(f"Skipped: {symbol}.{exchange}")
+    if ticker:
+        stock: Stock | None = yf_ticker_to_stock(ticker)
+        if stock:
+            if stock_repo.upsert(stock):
+                inserted += 1
+                logger.info(f"Upserted {stock.ticker}.{stock.exchange}")
+            return stock
+    return None
+
+
 def import_valid_orders(
     csv_path: Path,
     stock_repo: StockRepository,
