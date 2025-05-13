@@ -186,7 +186,7 @@ class Database:
     def create_tables_if_not_exists(self) -> None:
         # Tracks each unique stock
         _ = self.execute("""
-        CREATE TABLE stocks (
+        CREATE TABLE IF NOT EXISTS stocks (
             id INTEGER PRIMARY KEY,
             ticker TEXT NOT NULL,
             exchange TEXT NOT NULL,
@@ -197,7 +197,7 @@ class Database:
         """)
         # Stores user orders
         _ = self.execute("""
-        CREATE TABLE stock_orders (
+        CREATE TABLE IF NOT EXISTS stock_orders (
             id INTEGER PRIMARY KEY,
             stock_id INTEGER NOT NULL,
             purchase_datetime TEXT NOT NULL,
@@ -210,7 +210,7 @@ class Database:
         """)
         # Caches current stock info (refreshable)
         _ = self.execute("""
-        CREATE TABLE stock_info (
+        CREATE TABLE IF NOT EXISTS stock_info (
             stock_id INTEGER PRIMARY KEY,
             last_updated TEXT NOT NULL,
             current_price REAL,
@@ -222,7 +222,7 @@ class Database:
         """)
         # Corporate actions like splits and mergers
         _ = self.execute("""
-        CREATE TABLE corporate_actions (
+        CREATE TABLE IF NOT EXISTS corporate_actions (
             id INTEGER PRIMARY KEY,
             stock_id INTEGER NOT NULL,
             action_type TEXT NOT NULL, -- 'split', 'merger', 'acquisition', etc.
@@ -235,7 +235,7 @@ class Database:
         """)
         # Currencies and conversion rates
         _ = self.execute("""
-        CREATE TABLE fx_rates (
+        CREATE TABLE IF NOT EXISTS fx_rates (
             base_currency TEXT NOT NULL,
             target_currency TEXT NOT NULL,
             date TEXT NOT NULL,
