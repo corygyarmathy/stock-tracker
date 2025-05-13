@@ -23,23 +23,16 @@ def main() -> None:
     # Set up app
     setup_logging(config.log_config_path)
     session: CachedLimiterSession = get_yfinance_session()
-    db: Database = Database(config.db_path)
 
-    run_app(config, session, db)
+    # Run app with a single database connection
+    with Database(config.db_path) as db:
+        run_app(config, session, db)
 
 
 def run_app(config: AppConfig, session: CachedLimiterSession, db: Database) -> None:
     """Run the application with explicit dependencies."""
-    try:
-        db.create_tables_if_not_exists()
 
-        import_valid_tickers(config.csv_path, session)
-        # performance = calculate_portfolio_performance(db, session)
 
-        # Display results
-        # display_performance(performance)
-    finally:
-        db.close()
 
 
 # INFO: yf.Ticker("IVV")
