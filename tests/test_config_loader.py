@@ -9,7 +9,7 @@ def test_load_app_config(app_config):
     assert isinstance(app_config, AppConfig)
     assert app_config.log_level == "DEBUG"
     assert app_config.yf_max_requests == 2000
-    assert app_config.yf_request_interval_seconds == 0.1
+    assert app_config.yf_request_interval_seconds == 1
 
 
 def test_isolated_config_modifications(isolated_config_environment):
