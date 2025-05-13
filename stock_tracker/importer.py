@@ -1,4 +1,3 @@
-# pyright: ignore[reportUnsafeMultipleInheritance, reportIncompatibleMethodOverride]
 import logging
 from pathlib import Path
 from typing import Any
