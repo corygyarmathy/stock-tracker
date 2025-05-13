@@ -48,12 +48,12 @@ class Database:
             return result
         except sqlite3.Error as e:
             self.conn.rollback()
-            self.logger.error("Database error during execute:")
+            self.logger.error(f"Database error during execute: {e}")
             self.logger.error(traceback.format_exc())
             raise
         except Exception as e:
             self.conn.rollback()
-            self.logger.error("Unexpected error during execute:")
+            self.logger.error(f"Unexpected error during execute: {e}")
             self.logger.error(traceback.format_exc())
             raise
 
