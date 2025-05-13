@@ -188,14 +188,6 @@ def yf_ticker_to_stock(ticker: yf.Ticker) -> Stock | None:
     )
 
 
-def save_ticker(ticker: yf.Ticker) -> None:
-    db_path: Path = AppConfig.get().db_path
-    logger.debug(f"Saving ticker {ticker.ticker}.{ticker.fast_info.exchange} into {db_path}")
-    with Database(db_path) as db:
-        _ = db.execute(
-            query="INSERT INTO tickers (ticker, exchange) VALUES (?, ?)",
-            params=(ticker.ticker, ticker.fast_info.exchange),
-        )
 
 
 def import_valid_tickers(csv_path: Path, session: CachedLimiterSession) -> None:
