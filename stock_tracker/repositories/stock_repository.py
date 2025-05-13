@@ -6,7 +6,7 @@ from stock_tracker.utils.model_utils import ModelFactory
 
 class StockRepository:
     def __init__(self, db: Database):
-        self.db = db
+        self.db: Database = db
 
     def insert(self, stock: Stock) -> int:
         cursor = self.db.execute(
