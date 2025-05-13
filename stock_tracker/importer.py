@@ -6,9 +6,9 @@ from typing import Any
 import pandas as pd
 import yfinance as yf
 
-from stock_tracker.config import AppConfig
-from stock_tracker.db import Database
-from stock_tracker.models import Stock
+from stock_tracker.models import Stock, StockOrder
+from stock_tracker.repositories.order_repository import OrderRepository
+from stock_tracker.repositories.stock_repository import StockRepository
 from stock_tracker.yfinance_api import CachedLimiterSession
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -188,29 +188,116 @@ def yf_ticker_to_stock(ticker: yf.Ticker) -> Stock | None:
     )
 
 
+def import_valid_orders(
+    csv_path: Path,
+    stock_repo: StockRepository,
+    order_repo: OrderRepository,
+    session: CachedLimiterSession,  # Pass the session down
+) -> None:
+    try:
+        # Read CSV, converting everything to string and filling empty with ''
+        # This makes parsing functions receive strings or '' consistently
+        df: pd.DataFrame = pd.read_csv(csv_path, dtype=str).fillna("")
+        if df.empty:
+            logger.warning(f"CSV file is empty or contains no data rows: {csv_path}")
+            return
+    except FileNotFoundError:
+        logger.error(f"CSV file not found: {csv_path}")
+        return
+    except Exception as e:
+        logger.error(f"Error reading or processing CSV file {csv_path}: {e}", exc_info=True)
+        return
 
+    inserted_orders = 0
+    # Cache for stocks validated/upserted during this import run
+    validated_stocks: dict[tuple[str, str], Stock] = {}
 
-def import_valid_tickers(csv_path: Path, session: CachedLimiterSession) -> None:
-    df: pd.DataFrame = pd.read_csv(csv_path)
-    inserted = 0
+    # Iterate through dataframe rows using positional index
+    # This gives a direct integer index 'i'
+    for i in range(len(df)):
+        # Calculate human-readable row number (1-based, plus 1 for header)
+        row_number: int = i + 2
 
-    for _, row in df.iterrows():
-        symbol: str = str(row["ticker"]).strip()
-        exchange: str = str(row["exchange"]).strip()
-        full_symbol: str = f"{symbol}.{exchange}"
-        ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
-        if not ticker:
-            logger.warning(f"Invalid ticker: {full_symbol}. Searching for alternatives...")
-            results = search_ticker_quotes(symbol, session)
-            match = prompt_user_to_select(results)
-            if match:
-                ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
-            else:
-                logger.warning(f"Skipped: {symbol}.{exchange}")
-        if ticker:
-            if save_ticker(ticker):
-                inserted += 1
-                logger.info(f"Inserted {full_symbol}")
+        # Get the row data using the integer position
+        row_data: dict[str, str] = df.iloc[i].to_dict()
+
+        # --- Basic check for essential identifier columns ---
+        symbol_raw = row_data.get("ticker", "").strip()
+        exchange_raw = row_data.get("exchange", "").strip()
+        note = row_data.get("note", None)
+
+        if not symbol_raw or not exchange_raw:
+            # Use the calculated row_number in logs
+            logger.warning(
+                f"Row {row_number}: Missing 'ticker' or 'exchange'. Skipping row: {row_data}"
+            )
             continue
 
-    logger.info(f"Imported {inserted} tickers from {csv_path}")
+        # Use the cleaned symbol/exchange for processing
+        symbol: str = symbol_raw
+        exchange: str = exchange_raw
+
+        # --- Validate and Import Stock First ---
+
+        # Check if stock has already been validated
+        stock_key = (symbol.upper(), exchange.upper())
+        stock: Stock | None = validated_stocks.get(stock_key)
+
+        # If not validated, validate
+        if not stock:
+            logger.info(f"Row {row_number}: Validating stock {symbol}.{exchange}...")
+            stock = import_valid_stocks(symbol, exchange, stock_repo, session)
+            # If successful, ensure 'stock' variable holds the Stock object with its ID
+            if stock:
+                validated_stocks[(stock.ticker, stock.exchange)] = stock  # Cache it
+            else:
+                logger.warning(
+                    f"Row {row_number}: Could not validate stock for {symbol}.{exchange}. Skipping order."
+                )
+                continue  # Skip order if stock validation failed
+
+        # --- Parse and Validate Order Data from CSV ---
+        try:
+            # Use dedicated parsing functions, accessing data from row_data
+            purchase_dt: datetime = parse_csv_datetime(row_data.get("datetime", ""))
+            quantity: float = parse_csv_quantity(row_data.get("quantity", ""))
+            price_paid: float = parse_csv_price_paid(row_data.get("price_paid", ""))
+            fee: float = parse_csv_fee(row_data.get("fee", "0.0"))
+            # note already handled
+
+            if not stock.id:
+                raise ValueError("Stock {stock.name} is missing its ID value.")
+
+            # --- Create and Insert StockOrder ---
+            order: StockOrder = StockOrder(
+                id=None,
+                stock_id=stock.id,  # Use the ID from the validated Stock object
+                purchase_datetime=purchase_dt,
+                quantity=quantity,
+                price_paid=price_paid,
+                fee=fee,
+                note=note,
+            )
+
+            _ = order_repo.insert(order)
+            inserted_orders += 1
+            logger.info(
+                f"Row {row_number}: Imported order ID {order.id} for {stock.ticker}.{stock.exchange}"
+            )
+
+        except ValueError as e:
+            logger.error(
+                f"Row {row_number}: Order data validation error: {e}. Skipping row: {row_data}"
+            )
+            continue
+
+        except Exception as e:
+            logger.error(
+                f"Row {row_number}: Unexpected error processing order row: {e}. Skipping row: {row_data}",
+                exc_info=True,
+            )
+            continue
+
+    logger.info(
+        f"Finished importing orders. Successfully imported {inserted_orders} orders from {csv_path}"
+    )
