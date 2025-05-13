@@ -33,11 +33,8 @@ def setup_logging(config_path: Path, log_level: str) -> None:
             logging.warning(
                 f"Invalid log level '{log_level}' from AppConfig. Using default levels from YAML."
             )
-            # Do not override levels if the config level is invalid
             return
-        logging.info(
-            f"Logging successfully configured with level {override_level_str} from AppConfig."
-        )
+
         package_logger: Logger = logging.getLogger("stock_tracker")
         if package_logger:  # Check if the logger exists (it should if in YAML)
             package_logger.setLevel(override_level)
