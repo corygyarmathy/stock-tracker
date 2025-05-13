@@ -21,7 +21,7 @@ def main() -> None:
     AppConfig.set(config)
 
     # Set up app
-    setup_logging(config.log_config_path)
+    setup_logging(config.log_config_path, config.log_level)
     session: CachedLimiterSession = get_yfinance_session(
         requests_per_window=config.yf_max_requests,
         window_seconds=config.yf_request_interval_seconds,

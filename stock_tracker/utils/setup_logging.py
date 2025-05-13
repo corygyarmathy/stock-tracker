@@ -5,10 +5,8 @@ import sys
 
 import yaml
 
-from stock_tracker.config import AppConfig
 
-
-def setup_logging(config_path: Path) -> None:
+def setup_logging(config_path: Path, log_level: str) -> None:
     try:
         # Load default logging configuration from supplied Path to YAML file
         with open(file=config_path, mode="r") as f:
@@ -18,7 +16,6 @@ def setup_logging(config_path: Path) -> None:
         logging.config.dictConfig(config)
 
         # Override default log_level from AppConfig
-        log_level: str = AppConfig.get().log_level
         override_level_str: str = log_level.upper()
 
         # Convert string level to integer level. logging module constants are integers.
