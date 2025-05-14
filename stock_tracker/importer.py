@@ -166,8 +166,8 @@ def validate_ticker_with_fallback(
     Uses yfinance's built-in session management.
     """
     # First, try with the provided symbol and exchange
-    full_symbol: str = f"{symbol}.{exchange}"
-    logger.info(f"Attempting to validate ticker {full_symbol}.")
+    full_symbol: str = f"{symbol}.{exchange}" if exchange else symbol
+    logger.info(f"Attempting to validate ticker {full_symbol}")
     ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange)
 
     if ticker:
