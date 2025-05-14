@@ -64,18 +64,6 @@ def parse_csv_fee(value: Any) -> float:
     return fee
 
 
-def search_ticker_quotes(ticker: str, session: CachedLimiterSession) -> list[dict[str, Any]]:
-    # INFO: Example return of search['quotes']
-    # 'exchange' str = 'BTS'
-    # 'shortname' str = 'iShares Trust iShares S&P 500 B'
-    # 'quoteType' str = 'ETF'
-    # 'symbol' str = 'IVVW'
-    # 'index' str = 'quotes'
-    # 'score' float = 20006.0
-    # 'typeDisp' str = 'ETF'
-    # 'longname' str = 'iShares S&P 500 BuyWrite ETF'
-    # 'exchDisp' str = 'BATS Trading'
-    # 'isYahooFinance' bool = True
 def is_valid_ticker(
     symbol: str, exchange: str, session: "RateLimitedCachedSession", max_retries: int = 3
 ) -> yf.Ticker | None:
@@ -212,6 +200,52 @@ def is_valid_ticker(
     except Exception as e:
         logger.error(f"Search failed for {ticker}: {e}")
         return []
+def search_ticker_quotes(
+    ticker: str, session: RateLimitedCachedSession, max_retries: int = 3
+) -> list[dict[str, Any]]:
+    """
+    Search for ticker symbols in Yahoo Finance with retry mechanism.
+
+    Args:
+        ticker: The search query (ticker or company name)
+        session: Cached session with rate limiting
+        max_retries: Maximum number of retry attempts
+
+    Returns:
+        List of matching ticker quotes
+    """
+    retry_count = 0
+
+    while retry_count <= max_retries:
+        try:
+            logger.debug(f"Searching for tickers which match: {ticker}")
+            result: yf.Search = yf.Search(
+                query=ticker, max_results=20, news_count=0, lists_count=0, session=session
+            )
+            return result.quotes
+        except Exception as e:
+            error_message: str = str(e).lower()
+
+            # Check if this is a rate limit error
+            if "rate limit" in error_message or "too many requests" in error_message:
+                retry_count += 1
+
+                if retry_count > max_retries:
+                    logger.error(f"Max retries exceeded for search '{ticker}'. Giving up.")
+                    return []
+
+                # Exponential backoff with jitter
+                wait_time: int = min(60, (2**retry_count) + (random.randint(0, 1000) / 1000))
+                logger.warning(
+                    f"Rate limited for search '{ticker}'. Retrying in {wait_time:.2f} seconds (attempt {retry_count}/{max_retries})"
+                )
+                time.sleep(wait_time)
+            else:
+                # If it's not a rate limit error, don't retry
+                logger.error(f"Search failed for '{ticker}': {e}")
+                return []
+
+    return []
 
 
 def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | None:
