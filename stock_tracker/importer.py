@@ -100,50 +100,25 @@ def is_valid_ticker(symbol: str, exchange: str, max_retries: int = 3) -> yf.Tick
     for attempt_ticker_str in potential_tickers:
         logger.debug(f"Attempting to validate: {attempt_ticker_str}")
         retry_count = 0
-        current_ticker_obj: yf.Ticker | None = None
 
         while retry_count <= max_retries:
             try:
                 ticker_obj = yf.Ticker(attempt_ticker_str)
 
-                # Try fast_info first
-                price = current_ticker_obj.fast_info.get("last_price")
-                currency = current_ticker_obj.fast_info.get("currency")
+                # Use a try/except block for the fast_info property
+                try:
+                    price = ticker_obj.fast_info.get("last_price")
 
-                if price is not None and price > 0 and currency:
-                    logger.info(
-                        f"Validated {attempt_ticker_str} with fast_info: Price={price} {currency}"
-                    )
-                    return current_ticker_obj
+                    if price is not None and price > 0:
+                        logger.info(f"Validated {attempt_ticker_str}: Price={price}")
+                        return ticker_obj
+                except Exception as e:
+                    logger.debug(f"Failed to get fast_info for {attempt_ticker_str}: {e}")
 
-                # If fast_info fails or lacks price, try .info
-                if not (price and price > 0 and currency):
-                    logger.debug(
-                        f"fast_info for {attempt_ticker_str} insufficient (Price: {price}, Currency: {currency}). Trying .info."
-                    )
-                    # ticker.info can be slow and might raise an exception if the ticker is truly invalid
-                    # or if there are network issues not caught by the session.
-                    # Ensure your session handles underlying yfinance HTTP errors if possible,
-                    # or catch them here.
-                    info = current_ticker_obj.info
-                    price = info.get("currentPrice") or info.get(
-                        "previousClose"
-                    )  # Fallback to previousClose
-                    currency = info.get("currency")
-
-                    if price is not None and price > 0 and currency:
-                        logger.info(
-                            f"Validated {attempt_ticker_str} with .info: Price={price} {currency}"
-                        )
-                        return current_ticker_obj
-                    else:
-                        logger.warning(
-                            f"{attempt_ticker_str}: Could not get valid price from .info (Price: {price}, Currency: {currency})"
-                        )
-                        # Break from retry loop for this ticker_str, move to next potential_ticker_str
-                        break
-                else:  # fast_info was sufficient
-                    return current_ticker_obj
+                # Increment retry counter
+                retry_count += 1
+                if retry_count > max_retries:
+                    break
 
                 # Exponential backoff with jitter
                 wait_time = min(60, (2**retry_count) + (random.randint(0, 1000) / 1000))
