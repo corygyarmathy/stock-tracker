@@ -6,6 +6,11 @@ from typing import Any
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
 from stock_tracker.importer import import_valid_orders
+from stock_tracker.repositories.corporate_actions_repository import CorporateActionRepository
+from stock_tracker.repositories.fx_rate_repository import FxRateRepository
+from stock_tracker.repositories.order_repository import OrderRepository
+from stock_tracker.repositories.stock_info_repository import StockInfoRepository
+from stock_tracker.repositories.stock_repository import StockRepository
 from stock_tracker.utils.setup_logging import setup_logging
 from stock_tracker.yfinance_api import RateLimitedCachedSession, get_yfinance_session
 
@@ -36,8 +41,19 @@ def main() -> None:
 
 def run_app(config: AppConfig, session: RateLimitedCachedSession, db: Database) -> None:
     """Run the application with explicit dependencies."""
+    db.create_tables_if_not_exists()
 
+    stock_repo: StockRepository = StockRepository(db)
+    order_repo: OrderRepository = OrderRepository(db)
+    stock_info_repo: StockInfoRepository = StockInfoRepository(db)
+    corp_action_repo: CorporateActionRepository = CorporateActionRepository(db)
+    fx_rate_repo: FxRateRepository = FxRateRepository(db)
 
+    import_valid_orders(config.csv_path, stock_repo, order_repo, session)
+    # performance = calculate_portfolio_performance(db, session)
+
+    # Display results
+    # display_performance(performance)
 
 
 # INFO: yf.Ticker("IVV")
