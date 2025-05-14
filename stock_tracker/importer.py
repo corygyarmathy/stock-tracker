@@ -14,23 +14,12 @@ from stock_tracker.yfinance_api import RateLimitedCachedSession
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def is_valid_ticker(symbol: str, exchange: str, session: CachedLimiterSession) -> yf.Ticker | None:
-    full_symbol: str = f"{symbol}.{exchange}"
 # --- CSV Parsing Functions  ---
 def parse_csv_datetime(value: Any) -> datetime:
     """Parses a string from CSV into a datetime object."""
     if not isinstance(value, str):
         raise ValueError(f"Expected string for datetime, got {type(value)}")
     try:
-        ticker: yf.Ticker = yf.Ticker(full_symbol, session)
-        price: float | None = ticker.fast_info["last_price"]
-        logger.debug(f"{full_symbol}: last_price = {price}")
-        if isinstance(price, (float)) and price > 0:
-            return ticker
-        raise ValueError(f"Price value is invalid. Price: {price}")
-    except Exception as e:
-        logger.error(f"Failed to validate ticker: {full_symbol}. Error: {e}")
-        return None
         # IMPORTANT: Ensure this format matches your CSV!
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
     except ValueError:
@@ -87,11 +76,137 @@ def search_ticker_quotes(ticker: str, session: CachedLimiterSession) -> list[dic
     # 'longname' str = 'iShares S&P 500 BuyWrite ETF'
     # 'exchDisp' str = 'BATS Trading'
     # 'isYahooFinance' bool = True
+def is_valid_ticker(
+    symbol: str, exchange: str, session: "RateLimitedCachedSession", max_retries: int = 3
+) -> yf.Ticker | None:
+    """
+    Validates if a ticker symbol is valid by checking if it has valid price information.
+    Implements exponential backoff for retries on potential API request issues.
 
-    try:
-        logger.debug(f"Searching for  tickert which match: {ticker}")
-        result: yf.Search = yf.Search(
-            query=ticker, max_results=20, news_count=0, lists_count=0, session=session
+    :param symbol: Stock symbol (e.g., "AAPL")
+    :param exchange: Exchange code (e.g., "NASDAQ", "AX"). Can be None or empty for US stocks.
+    :param session: Cached session with rate limiting
+    :param max_retries: Maximum number of retry attempts for API calls
+    :return: Ticker object if valid and price info is found, None otherwise
+    """
+
+    # Try common US exchanges with symbol only first
+    us_exchanges = ["NASDAQ", "NYSE", "ARCA", "PCX"]  # NYSE Arca may just be ARCA or blank
+    potential_tickers: list[str] = []
+
+    if exchange and exchange.upper() in us_exchanges:
+        potential_tickers.append(symbol)  # For US exchanges, try symbol alone first
+        potential_tickers.append(f"{symbol}.{exchange}")  # And then with suffix, just in case
+    elif exchange:  # For non-US exchanges, suffix is usually required
+        potential_tickers.append(f"{symbol}.{exchange.upper()}")
+        potential_tickers.append(symbol)  # As a fallback, try symbol alone
+    else:  # No exchange info provided
+        potential_tickers.append(symbol)
+
+    # Remove duplicates if any by converting to dict and back to list
+    potential_tickers = list(dict.fromkeys(potential_tickers))
+
+    for attempt_ticker_str in potential_tickers:
+        logger.debug(f"Attempting to validate: {attempt_ticker_str}")
+        retry_count = 0
+        current_ticker_obj: yf.Ticker | None = None
+
+        while retry_count <= max_retries:
+            try:
+                current_ticker_obj = yf.Ticker(attempt_ticker_str, session=session)
+
+                # Try fast_info first
+                price = current_ticker_obj.fast_info.get("last_price")
+                currency = current_ticker_obj.fast_info.get("currency")
+
+                if price is not None and price > 0 and currency:
+                    logger.info(
+                        f"Validated {attempt_ticker_str} with fast_info: Price={price} {currency}"
+                    )
+                    return current_ticker_obj
+
+                # If fast_info fails or lacks price, try .info
+                if not (price and price > 0 and currency):
+                    logger.debug(
+                        f"fast_info for {attempt_ticker_str} insufficient (Price: {price}, Currency: {currency}). Trying .info."
+                    )
+                    # ticker.info can be slow and might raise an exception if the ticker is truly invalid
+                    # or if there are network issues not caught by the session.
+                    # Ensure your session handles underlying yfinance HTTP errors if possible,
+                    # or catch them here.
+                    info = current_ticker_obj.info
+                    price = info.get("currentPrice") or info.get(
+                        "previousClose"
+                    )  # Fallback to previousClose
+                    currency = info.get("currency")
+
+                    if price is not None and price > 0 and currency:
+                        logger.info(
+                            f"Validated {attempt_ticker_str} with .info: Price={price} {currency}"
+                        )
+                        return current_ticker_obj
+                    else:
+                        logger.warning(
+                            f"{attempt_ticker_str}: Could not get valid price from .info (Price: {price}, Currency: {currency})"
+                        )
+                        # Break from retry loop for this ticker_str, move to next potential_ticker_str
+                        break
+                else:  # fast_info was sufficient
+                    return current_ticker_obj
+
+            except Exception as e:  # Catching a broader range of yfinance/network issues
+                error_message = str(e).lower()
+                # yfinance can sometimes return simple Exceptions for "No data found"
+                # or specific HTTP errors if not wrapped by your session.
+                if (
+                    "no data found" in error_message
+                    or "failed to decrypt" in error_message
+                    or "404" in error_message
+                ):  # Common yfinance errors for invalid tickers
+                    logger.warning(
+                        f"Could not fetch data for {attempt_ticker_str}: {e}. This might indicate an invalid ticker or temporary issue."
+                    )
+                    break  # Break from retry loop for this ticker_str, it's likely invalid
+
+                # Check for rate limit error text from Yahoo Finance responses
+                # (This might be HTML in the exception message)
+                is_rate_limit_error = (
+                    "rate limit" in error_message
+                    or "too many requests" in error_message
+                    or "crumb trail" in error_message
+                )  # often related to session/cookie issues yfinance handles
+
+                if is_rate_limit_error:
+                    retry_count += 1
+                    if retry_count > max_retries:
+                        logger.error(
+                            f"Max retries exceeded for {attempt_ticker_str} due to API errors. Giving up on this ticker string."
+                        )
+                        break  # Break from retry loop
+
+                    wait_time = min(
+                        60, (2**retry_count) + (random.randint(0, 1000) / 1000)
+                    )  # Exponential backoff
+                    logger.warning(
+                        f"API error for {attempt_ticker_str} (possibly rate limit). Retrying in {wait_time:.2f} seconds (attempt {retry_count}/{max_retries}). Error: {e}"
+                    )
+                    time.sleep(wait_time)
+                else:
+                    # Not a known rate limit error, and not a "no data" error
+                    logger.error(
+                        f"Failed to validate ticker {attempt_ticker_str} with unhandled error: {e}"
+                    )
+                    break  # Break from retry loop, move to next potential_ticker_str
+
+        # If this attempt_ticker_str loop finished without returning, it failed.
+        # The outer loop will then try the next potential_ticker_str.
+
+    logger.warning(
+        f"Failed to validate {symbol} (exchange: {exchange}) after trying: {potential_tickers}"
+    )
+    return None
+
+
         )
         return result.quotes
     except Exception as e:
