@@ -22,9 +22,11 @@ def main() -> None:
 
     # Set up app
     setup_logging(config.log_config_path, config.log_level)
-    session: CachedLimiterSession = get_yfinance_session(
+    session: RateLimitedCachedSession = get_yfinance_session(
+        cache_path=config.yf_cache_path,
         requests_per_window=config.yf_max_requests,
         window_seconds=config.yf_request_interval_seconds,
+        cache_expiry=config.yf_cache_expiry,
     )
 
     # Run app with a single database connection

@@ -50,6 +50,8 @@ class AppConfig:
     log_level: str
     yf_max_requests: int
     yf_request_interval_seconds: int
+    yf_cache_path: str
+    yf_cache_expiry: int
 
     _instance: ClassVar[Self | None] = None  # private singleton instance
 

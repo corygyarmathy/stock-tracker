@@ -9,3 +9,5 @@ log_level: DEBUG
 # Yahoo Finance rate limit (requests per X seconds)
 yf_max_requests: 2
 yf_request_interval_seconds: 5
+yf_cache_path: yfinance.cache
+yf_cache_expiry: 3600
