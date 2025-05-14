@@ -1,5 +1,6 @@
-from datetime import datetime
 import logging
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -195,11 +196,167 @@ def is_valid_ticker(
     return None
 
 
+def validate_tickers_batch(
+    symbols_with_exchange: list[tuple[str, str]],
+    session: RateLimitedCachedSession,
+    batch_size: int = 10,
+    batch_delay: float = 1.0,
+) -> dict[str, yf.Ticker | None]:
+    """
+    Validates multiple tickers in batches to manage rate limiting more effectively.
+
+    :param symbols_with_exchange: List of (symbol, exchange) tuples to validate
+    :param session: Cached session with rate limiting
+    :param batch_size: Number of tickers to process in each batch
+    :param batch_delay: Delay in seconds between batches
+    :return: Dictionary mapping full symbols to validated Ticker objects (or None if invalid)
+    """
+    results: dict[str, yf.Ticker | None] = {}
+
+    # Process in batches
+    for i in range(0, len(symbols_with_exchange), batch_size):
+        batch: list[tuple[str, str]] = symbols_with_exchange[i : i + batch_size]
+
+        logger.info(
+            f"Processing batch {i // batch_size + 1}/{(len(symbols_with_exchange) - 1) // batch_size + 1} ({len(batch)} tickers)"
         )
         return result.quotes
     except Exception as e:
         logger.error(f"Search failed for {ticker}: {e}")
         return []
+
+        # Process each ticker in the batch
+        for symbol, exchange in batch:
+            full_symbol: str = f"{symbol}.{exchange}"
+            ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
+            results[full_symbol] = ticker
+
+        # Only delay if we're not on the last batch
+        if i + batch_size < len(symbols_with_exchange):
+            logger.debug(f"Sleeping for {batch_delay} seconds between batches")
+            time.sleep(batch_delay)
+
+    return results
+
+
+def validate_ticker_with_fallback(
+    symbol: str, exchange: str, session: RateLimitedCachedSession, interactive: bool = True
+) -> tuple[str | None, str | None, yf.Ticker | None]:
+    """
+    Validate a ticker with interactive fallback search when validation fails.
+
+    Args:
+        symbol: Stock symbol
+        exchange: Exchange code
+        session: Cached session with rate limiting
+        interactive: Whether to prompt for user input when validation fails
+
+    Returns:
+        tuple of (symbol, exchange, ticker_object) - Any may be None if validation fails
+    """
+    # First, try with the provided symbol and exchange
+    full_symbol: str = f"{symbol}.{exchange}"
+    logger.info(f"Attempting to validate ticker {full_symbol}.")
+    ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
+
+    if ticker:
+        logger.info(f"Successfully validated ticker: {full_symbol}")
+        return symbol, exchange, ticker
+
+    # If validation failed and we're in interactive mode, search for alternatives
+    if interactive:
+        logger.warning(f"Failed to validate ticker: {full_symbol}. Searching for alternatives...")
+
+        # Search using just the symbol as query (more likely to find matches)
+        search_results = search_ticker_quotes(
+            symbol,
+            session,
+        )
+
+        if search_results:
+            logger.info(
+                f"Successfully searched for ticker: {full_symbol}. Prompting user to select correct option."
+            )
+
+            # Prompt user to select from results
+            selected = prompt_user_to_select(search_results)
+
+            if selected:
+                # Extract new symbol and exchange
+                new_symbol = selected.get("symbol")
+                new_exchange = selected.get("exchange")
+
+                if new_symbol and new_exchange:
+                    logger.info(f"User selected alternative: {new_symbol}.{new_exchange}")
+
+                    # Validate the selected ticker
+                    new_ticker = is_valid_ticker(new_symbol, new_exchange, session)
+                    if new_ticker:
+                        return new_symbol, new_exchange, new_ticker
+                    else:
+                        logger.warning(
+                            f"Selected alternative {new_symbol}.{new_exchange} also failed validation"
+                        )
+
+    # If we get here, validation failed and no valid alternative was selected
+    return None, None, None
+
+
+def batch_validate_with_fallback(
+    tickers_to_validate: list[tuple[str, str]],
+    session: RateLimitedCachedSession,
+    batch_size: int = 5,
+    batch_delay: float = 2.0,
+    interactive: bool = True,
+) -> dict[tuple[str, str], tuple[str | None, str | None, yf.Ticker | None]]:
+    """
+    Batch validate tickers with interactive fallback for invalid tickers.
+
+    Args:
+        tickers_to_validate: List of (symbol, exchange) tuples to validate
+        session: Cached session with rate limiting
+        batch_size: Number of tickers to process in each batch
+        batch_delay: Delay in seconds between batches
+        interactive: Whether to prompt for user input when validation fails
+
+    Returns:
+        Dictionary mapping original (symbol, exchange) to (new_symbol, new_exchange, ticker_obj)
+    """
+    results: dict[tuple[str, str], tuple[str | None, str | None, yf.Ticker | None]] = {}
+    total_batches = (len(tickers_to_validate) - 1) // batch_size + 1
+
+    # First try standard batch validation (more efficient)
+    logger.info(f"Batch validating {len(tickers_to_validate)} tickers in {total_batches} batches")
+    batch_results = validate_tickers_batch(tickers_to_validate, session, batch_size, batch_delay)
+
+    # Process batch results
+    for i, (symbol, exchange) in enumerate(tickers_to_validate):
+        full_symbol: str = f"{symbol}.{exchange}"
+        ticker_obj: yf.Ticker | None = batch_results.get(full_symbol)
+
+        if ticker_obj:
+            # Successfully validated
+            results[(symbol, exchange)] = (symbol, exchange, ticker_obj)
+        elif interactive:
+            # If interactive and batch validation failed, try individual validation with fallback
+            logger.info(
+                f"Ticker {i + 1}/{len(tickers_to_validate)}: {full_symbol} failed batch validation, trying interactive search..."
+            )
+
+            # Avoid bunching up interactive searches
+            if i > 0:
+                time.sleep(1.0)  # Small delay between interactive searches
+
+            new_symbol, new_exchange, new_ticker = validate_ticker_with_fallback(
+                symbol, exchange, session, interactive=True
+            )
+            results[(symbol, exchange)] = (new_symbol, new_exchange, new_ticker)
+        else:
+            # Non-interactive mode and validation failed
+            results[(symbol, exchange)] = (None, None, None)
+
+    return results
+
 def search_ticker_quotes(
     ticker: str, session: RateLimitedCachedSession, max_retries: int = 3
 ) -> list[dict[str, Any]]:
@@ -346,38 +503,30 @@ def yf_ticker_to_stock(ticker: yf.Ticker) -> Stock | None:
     )
 
 
-def import_valid_stocks(
-    symbol: str, exchange: str, stock_repo: StockRepository, session: CachedLimiterSession
-) -> Stock | None:
-    ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
-    inserted = 0
-    if not ticker:
-        logger.warning(f"Invalid ticker: {symbol}.{exchange}. Searching for alternatives...")
-        results = search_ticker_quotes(symbol, session)
-        match = prompt_user_to_select(results)
-        if match:
-            ticker = is_valid_ticker(symbol, exchange, session)
-        else:
-            logger.warning(f"Skipped: {symbol}.{exchange}")
-    if ticker:
-        stock: Stock | None = yf_ticker_to_stock(ticker)
-        if stock:
-            if stock_repo.upsert(stock):
-                inserted += 1
-                logger.info(f"Upserted {stock.ticker}.{stock.exchange}")
-            return stock
-    return None
-
-
 def import_valid_orders(
     csv_path: Path,
     stock_repo: StockRepository,
     order_repo: OrderRepository,
     session: RateLimitedCachedSession,
+    batch_size: int = 5,
+    batch_delay: float = 2.0,
+    interactive: bool = True,
 ) -> None:
+    """
+    Import and validate orders from a CSV file, using batch processing for stock validation
+    with interactive fallback for invalid tickers.
+
+    Args:
+        csv_path: Path to the CSV file containing orders
+        stock_repo: Repository for stock data
+        order_repo: Repository for order data
+        session: Cached session with rate limiting
+        batch_size: Number of tickers to validate in each batch
+        batch_delay: Delay in seconds between batches
+        interactive: Whether to prompt for user input when validation fails
+    """
     try:
         # Read CSV, converting everything to string and filling empty with ''
-        # This makes parsing functions receive strings or '' consistently
         df: pd.DataFrame = pd.read_csv(csv_path, dtype=str).fillna("")
         if df.empty:
             logger.warning(f"CSV file is empty or contains no data rows: {csv_path}")
@@ -389,70 +538,135 @@ def import_valid_orders(
         logger.error(f"Error reading or processing CSV file {csv_path}: {e}", exc_info=True)
         return
 
-    inserted_orders = 0
-    # Cache for stocks validated/upserted during this import run
-    validated_stocks: dict[tuple[str, str], Stock] = {}
+    # Step 1: Extract unique ticker/exchange combinations from the CSV
+    unique_tickers: set[tuple[str, str]] = set()
 
-    # Iterate through dataframe rows using positional index
-    # This gives a direct integer index 'i'
+    for i in range(len(df)):
+        row_data: dict[str, str] = df.iloc[i].to_dict()
+        symbol: str = row_data.get("ticker", "").strip()
+        exchange: str = row_data.get("exchange", "").strip()
+
+        if symbol and exchange:
+            unique_tickers.add((symbol.upper(), exchange.upper()))
+
+    if not unique_tickers:
+        logger.warning(f"No valid ticker/exchange combinations found in CSV: {csv_path}")
+        return
+
+    logger.info(f"Found {len(unique_tickers)} unique stock symbols to validate")
+
+    # Step 2: Check which stocks already exist in the database to avoid re-validation
+    existing_stocks: dict[tuple[str, str], Stock] = {}
+    for symbol, exchange in unique_tickers:
+        stock: Stock | None = stock_repo.get_by_ticker_exchange(symbol, exchange)
+        if stock:
+            existing_stocks[(symbol, exchange)] = stock
+            logger.debug(
+                f"Stock {symbol}.{exchange} already exists in database, skipping validation"
+            )
+
+    # Step 3: Validate stocks that don't exist in the database
+    stocks_to_validate: list[tuple[str, str]] = [
+        ticker for ticker in unique_tickers if ticker not in existing_stocks
+    ]
+
+    validation_results: dict[tuple[str, str], tuple[str | None, str | None, yf.Ticker | None]] = {}
+    stock_mapping: dict[tuple[str, str], tuple[str, str]] = {}  # Maps original to corrected symbols
+    validated_stocks: dict[tuple[str, str], Stock] = {}
+    validated_stocks.update(existing_stocks)  # Start with existing stocks
+
+    if stocks_to_validate:
+        logger.info(f"Validating {len(stocks_to_validate)} new stocks in batches")
+
+        # Use batch validation with fallback
+        validation_results = batch_validate_with_fallback(
+            stocks_to_validate,
+            session,
+            batch_size=batch_size,
+            batch_delay=batch_delay,
+            interactive=interactive,
+        )
+
+        # Process validation results and insert valid stocks into the database
+        for original_key, (new_symbol, new_exchange, ticker_obj) in validation_results.items():
+            if new_symbol and new_exchange and ticker_obj:
+                # Create stock object from ticker data
+                stock = yf_ticker_to_stock(ticker_obj)
+
+                if not stock:
+                    logger.error(
+                        f"ticker_obj {ticker_obj.fast_info['symbol']} failed to be converted into a Stock obj."
+                    )
+                    continue
+
+                # Save to database
+                _ = stock_repo.insert(stock)
+
+                # If the symbol was corrected, store the mapping
+                if original_key != (new_symbol.upper(), new_exchange.upper()):
+                    stock_mapping[original_key] = (new_symbol.upper(), new_exchange.upper())
+                    logger.info(
+                        f"Symbol corrected: {original_key[0]}.{original_key[1]} -> {new_symbol}.{new_exchange}"
+                    )
+
+                # Add to validated stocks cache using the new symbol
+                validated_stocks[(new_symbol.upper(), new_exchange.upper())] = stock
+                logger.info(f"Added new stock to database: {new_symbol}.{new_exchange}")
+
+    # Step 4: Process each row in the CSV and create orders
+    inserted_orders = 0
+
     for i in range(len(df)):
         # Calculate human-readable row number (1-based, plus 1 for header)
         row_number: int = i + 2
-
-        # Get the row data using the integer position
         row_data: dict[str, str] = df.iloc[i].to_dict()
 
-        # --- Basic check for essential identifier columns ---
-        symbol_raw = row_data.get("ticker", "").strip()
-        exchange_raw = row_data.get("exchange", "").strip()
+        # Get basic ticker info
+        symbol: str = row_data.get("ticker", "").strip().upper()
+        exchange: str = row_data.get("exchange", "").strip().upper()
         note = row_data.get("note", None)
 
-        if not symbol_raw or not exchange_raw:
-            # Use the calculated row_number in logs
+        if not symbol or not exchange:
             logger.warning(
                 f"Row {row_number}: Missing 'ticker' or 'exchange'. Skipping row: {row_data}"
             )
             continue
 
-        # Use the cleaned symbol/exchange for processing
-        symbol: str = symbol_raw
-        exchange: str = exchange_raw
+        # Check if this symbol was corrected during validation
+        original_key = (symbol, exchange)
+        corrected_key = stock_mapping.get(original_key, original_key)
 
-        # --- Validate and Import Stock First ---
+        # Get the validated stock
+        stock: Stock | None = validated_stocks.get(corrected_key)
 
-        # Check if stock has already been validated
-        stock_key = (symbol.upper(), exchange.upper())
-        stock: Stock | None = validated_stocks.get(stock_key)
-
-        # If not validated, validate
         if not stock:
-            logger.info(f"Row {row_number}: Validating stock {symbol}.{exchange}...")
-            stock = import_valid_stocks(symbol, exchange, stock_repo, session)
-            # If successful, ensure 'stock' variable holds the Stock object with its ID
-            if stock:
-                validated_stocks[(stock.ticker, stock.exchange)] = stock  # Cache it
-            else:
-                logger.warning(
-                    f"Row {row_number}: Could not validate stock for {symbol}.{exchange}. Skipping order."
-                )
-                continue  # Skip order if stock validation failed
+            logger.warning(
+                f"Row {row_number}: Stock {symbol}.{exchange} was not validated. Skipping order."
+            )
+            continue
 
-        # --- Parse and Validate Order Data from CSV ---
+        # Parse and validate order data
         try:
-            # Use dedicated parsing functions, accessing data from row_data
             purchase_dt: datetime = parse_csv_datetime(row_data.get("datetime", ""))
             quantity: float = parse_csv_quantity(row_data.get("quantity", ""))
             price_paid: float = parse_csv_price_paid(row_data.get("price_paid", ""))
             fee: float = parse_csv_fee(row_data.get("fee", "0.0"))
-            # note already handled
 
             if not stock.id:
-                raise ValueError("Stock {stock.name} is missing its ID value.")
+                raise ValueError(f"Stock {stock.ticker}.{stock.exchange} is missing its ID value.")
 
-            # --- Create and Insert StockOrder ---
+            # Augment note if symbol was corrected
+            if original_key != corrected_key:
+                corrected_note = f"Original symbol: {original_key[0]}.{original_key[1]}"
+                if note:
+                    note = f"{note}; {corrected_note}"
+                else:
+                    note = corrected_note
+
+            # Create and insert StockOrder
             order: StockOrder = StockOrder(
                 id=None,
-                stock_id=stock.id,  # Use the ID from the validated Stock object
+                stock_id=stock.id,
                 purchase_datetime=purchase_dt,
                 quantity=quantity,
                 price_paid=price_paid,
@@ -460,7 +674,8 @@ def import_valid_orders(
                 note=note,
             )
 
-            _ = order_repo.insert(order)
+            order_id = order_repo.insert(order)
+            order.id = order_id
             inserted_orders += 1
             logger.info(
                 f"Row {row_number}: Imported order ID {order.id} for {stock.ticker}.{stock.exchange}"
@@ -471,7 +686,6 @@ def import_valid_orders(
                 f"Row {row_number}: Order data validation error: {e}. Skipping row: {row_data}"
             )
             continue
-
         except Exception as e:
             logger.error(
                 f"Row {row_number}: Unexpected error processing order row: {e}. Skipping row: {row_data}",
