@@ -13,7 +13,6 @@ from requests.exceptions import HTTPError, RequestException
 from stock_tracker.models import Stock, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_repository import StockRepository
-from stock_tracker.yfinance_api import RateLimitedCachedSession
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -70,18 +69,16 @@ def parse_csv_fee(value: Any) -> float:
     return fee
 
 
-def is_valid_ticker(
-    symbol: str, exchange: str, session: "RateLimitedCachedSession", max_retries: int = 3
-) -> yf.Ticker | None:
+def is_valid_ticker(symbol: str, exchange: str, max_retries: int = 3) -> yf.Ticker | None:
     """
     Validates if a ticker symbol is valid by checking if it has valid price information.
     Implements exponential backoff for retries on potential API request issues.
 
     :param symbol: Stock symbol (e.g., "AAPL")
     :param exchange: Exchange code (e.g., "NASDAQ", "AX"). Can be None or empty for US stocks.
-    :param session: Cached session with rate limiting
     :param max_retries: Maximum number of retry attempts for API calls
     :return: Ticker object if valid and price info is found, None otherwise
+    Uses yfinance's built-in session management instead of a custom session.
     """
 
     # Try common US exchanges with symbol only first
@@ -107,7 +104,7 @@ def is_valid_ticker(
 
         while retry_count <= max_retries:
             try:
-                current_ticker_obj = yf.Ticker(attempt_ticker_str, session=session)
+                ticker_obj = yf.Ticker(attempt_ticker_str)
 
                 # Try fast_info first
                 price = current_ticker_obj.fast_info.get("last_price")
@@ -148,56 +145,33 @@ def is_valid_ticker(
                 else:  # fast_info was sufficient
                     return current_ticker_obj
 
-            except Exception as e:  # Catching a broader range of yfinance/network issues
+                # Exponential backoff with jitter
+                wait_time = min(60, (2**retry_count) + (random.randint(0, 1000) / 1000))
+                logger.warning(f"Retrying {attempt_ticker_str} in {wait_time:.2f} seconds")
+                time.sleep(wait_time)
+
+            except Exception as e:
                 error_message = str(e).lower()
-                # yfinance can sometimes return simple Exceptions for "No data found"
-                # or specific HTTP errors if not wrapped by your session.
-                if (
-                    "no data found" in error_message
-                    or "failed to decrypt" in error_message
-                    or "404" in error_message
-                ):  # Common yfinance errors for invalid tickers
-                    logger.warning(
-                        f"Could not fetch data for {attempt_ticker_str}: {e}. This might indicate an invalid ticker or temporary issue."
-                    )
-                    break  # Break from retry loop for this ticker_str, it's likely invalid
 
-                # Check for rate limit error text from Yahoo Finance responses
-                # (This might be HTML in the exception message)
-                is_rate_limit_error = (
-                    "rate limit" in error_message
-                    or "too many requests" in error_message
-                    or "crumb trail" in error_message
-                )  # often related to session/cookie issues yfinance handles
+                if "no data found" in error_message or "404" in error_message:
+                    logger.warning(f"Invalid ticker {attempt_ticker_str}: {e}")
+                    break  # Try next format
 
-                if is_rate_limit_error:
+                if "rate limit" in error_message or "too many requests" in error_message:
                     retry_count += 1
                     if retry_count > max_retries:
-                        logger.error(
-                            f"Max retries exceeded for {attempt_ticker_str} due to API errors. Giving up on this ticker string."
-                        )
-                        break  # Break from retry loop
+                        logger.error(f"Rate limit exceeded for {attempt_ticker_str}")
+                        break
 
-                    wait_time = min(
-                        60, (2**retry_count) + (random.randint(0, 1000) / 1000)
-                    )  # Exponential backoff
-                    logger.warning(
-                        f"API error for {attempt_ticker_str} (possibly rate limit). Retrying in {wait_time:.2f} seconds (attempt {retry_count}/{max_retries}). Error: {e}"
-                    )
+                    # Longer wait for rate limits
+                    wait_time = min(120, (2**retry_count) + (random.randint(0, 1000) / 1000))
+                    logger.warning(f"Rate limited. Waiting {wait_time:.2f}s before retry")
                     time.sleep(wait_time)
                 else:
-                    # Not a known rate limit error, and not a "no data" error
-                    logger.error(
-                        f"Failed to validate ticker {attempt_ticker_str} with unhandled error: {e}"
-                    )
-                    break  # Break from retry loop, move to next potential_ticker_str
+                    logger.error(f"Error for {attempt_ticker_str}: {e}")
+                    break
 
-        # If this attempt_ticker_str loop finished without returning, it failed.
-        # The outer loop will then try the next potential_ticker_str.
-
-    logger.warning(
-        f"Failed to validate {symbol} (exchange: {exchange}) after trying: {potential_tickers}"
-    )
+    logger.warning(f"Failed to validate {symbol} (exchange: {exchange}) after trying all formats")
     return None
 
 
@@ -241,7 +215,7 @@ def validate_tickers_batch(
 
 
 def validate_ticker_with_fallback(
-    symbol: str, exchange: str, session: RateLimitedCachedSession, interactive: bool = True
+    symbol: str, exchange: str, interactive: bool = True
 ) -> tuple[str | None, str | None, yf.Ticker | None]:
     """
     Validate a ticker with interactive fallback search when validation fails.
@@ -249,16 +223,16 @@ def validate_ticker_with_fallback(
     Args:
         symbol: Stock symbol
         exchange: Exchange code
-        session: Cached session with rate limiting
         interactive: Whether to prompt for user input when validation fails
 
     Returns:
         tuple of (symbol, exchange, ticker_object) - Any may be None if validation fails
+    Uses yfinance's built-in session management.
     """
     # First, try with the provided symbol and exchange
     full_symbol: str = f"{symbol}.{exchange}"
     logger.info(f"Attempting to validate ticker {full_symbol}.")
-    ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
+    ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange)
 
     if ticker:
         logger.info(f"Successfully validated ticker: {full_symbol}")
@@ -268,11 +242,8 @@ def validate_ticker_with_fallback(
     if interactive:
         logger.warning(f"Failed to validate ticker: {full_symbol}. Searching for alternatives...")
 
-        # Search using just the symbol as query (more likely to find matches)
-        search_results = search_ticker_quotes(
-            symbol,
-            session,
-        )
+        # Search using just the symbol as query
+        search_results = search_ticker_quotes(symbol)
 
         if search_results:
             logger.info(
@@ -291,7 +262,7 @@ def validate_ticker_with_fallback(
                     logger.info(f"User selected alternative: {new_symbol}.{new_exchange}")
 
                     # Validate the selected ticker
-                    new_ticker = is_valid_ticker(new_symbol, new_exchange, session)
+                    new_ticker = is_valid_ticker(new_symbol, new_exchange)
                     if new_ticker:
                         return new_symbol, new_exchange, new_ticker
                     else:
@@ -305,7 +276,6 @@ def validate_ticker_with_fallback(
 
 def batch_validate_with_fallback(
     tickers_to_validate: list[tuple[str, str]],
-    session: RateLimitedCachedSession,
     batch_size: int = 5,
     batch_delay: float = 2.0,
     interactive: bool = True,
@@ -315,20 +285,19 @@ def batch_validate_with_fallback(
 
     Args:
         tickers_to_validate: List of (symbol, exchange) tuples to validate
-        session: Cached session with rate limiting
         batch_size: Number of tickers to process in each batch
         batch_delay: Delay in seconds between batches
         interactive: Whether to prompt for user input when validation fails
 
     Returns:
         Dictionary mapping original (symbol, exchange) to (new_symbol, new_exchange, ticker_obj)
+    Batch validate tickers with fallback, using yfinance's built-in session management.
     """
     results: dict[tuple[str, str], tuple[str | None, str | None, yf.Ticker | None]] = {}
     total_batches = (len(tickers_to_validate) - 1) // batch_size + 1
 
     # First try standard batch validation (more efficient)
     logger.info(f"Batch validating {len(tickers_to_validate)} tickers in {total_batches} batches")
-    batch_results = validate_tickers_batch(tickers_to_validate, session, batch_size, batch_delay)
 
     # Process batch results
     for i, (symbol, exchange) in enumerate(tickers_to_validate):
@@ -344,17 +313,41 @@ def batch_validate_with_fallback(
                 f"Ticker {i + 1}/{len(tickers_to_validate)}: {full_symbol} failed batch validation, trying interactive search..."
             )
 
-            # Avoid bunching up interactive searches
-            if i > 0:
-                time.sleep(1.0)  # Small delay between interactive searches
+            # Try validation without custom session
+            ticker_obj = is_valid_ticker(symbol, exchange)
 
-            new_symbol, new_exchange, new_ticker = validate_ticker_with_fallback(
-                symbol, exchange, session, interactive=True
+            if ticker_obj:
+                # Successfully validated
+                results[(symbol, exchange)] = (symbol, exchange, ticker_obj)
+                logger.info(f"Successfully validated {symbol}.{exchange}")
+            elif interactive:
+                # Try with fallback
+                logger.info(
+                    f"Ticker {symbol}.{exchange} failed validation, trying interactive search..."
+                )
+
+                # Add delay before interactive search
+                time.sleep(5.0)
+
+                new_symbol, new_exchange, new_ticker = validate_ticker_with_fallback(
+                    symbol, exchange, interactive=True
+                )
+                results[(symbol, exchange)] = (new_symbol, new_exchange, new_ticker)
+            else:
+                # Non-interactive mode and validation failed
+                results[(symbol, exchange)] = (None, None, None)
+                logger.warning(f"Failed to validate {symbol}.{exchange} in non-interactive mode")
+
+            # Add delay between tickers in batch
+            if j < len(batch) - 1:
+                time.sleep(5.0)
+
+        # Add longer delay between batches
+        if batch_num < total_batches:
+            logger.info(
+                f"Batch {batch_num} complete. Sleeping for {batch_delay} seconds before next batch"
             )
-            results[(symbol, exchange)] = (new_symbol, new_exchange, new_ticker)
-        else:
-            # Non-interactive mode and validation failed
-            results[(symbol, exchange)] = (None, None, None)
+            time.sleep(batch_delay)
 
     return results
 
@@ -414,28 +407,25 @@ def search_yfinance(
     return None
 
 
-def search_ticker_quotes(
-    ticker: str, session: RateLimitedCachedSession, max_retries: int = 3
-) -> list[dict[str, Any]]:
+def search_ticker_quotes(ticker: str, max_retries: int = 3) -> list[dict[str, Any]]:
     """
     Search for ticker symbols in Yahoo Finance with retry mechanism.
 
     Args:
         ticker: The search query (ticker or company name)
-        session: Cached session with rate limiting
         max_retries: Maximum number of retry attempts
 
     Returns:
         List of matching ticker quotes
+    Uses yfinance's built-in session management.
     """
     retry_count = 0
 
     while retry_count <= max_retries:
         try:
             logger.debug(f"Searching for tickers which match: {ticker}")
-            result: yf.Search = yf.Search(
-                query=ticker, max_results=20, news_count=0, lists_count=0, session=session
-            )
+            # Don't pass a custom session
+            result: yf.Search = yf.Search(query=ticker, max_results=20, news_count=0, lists_count=0)
             return result.quotes
         except Exception as e:
             error_message: str = str(e).lower()
@@ -565,7 +555,6 @@ def import_valid_orders(
     csv_path: Path,
     stock_repo: StockRepository,
     order_repo: OrderRepository,
-    session: RateLimitedCachedSession,
     batch_size: int = 5,
     batch_delay: float = 2.0,
     interactive: bool = True,
@@ -578,10 +567,11 @@ def import_valid_orders(
         csv_path: Path to the CSV file containing orders
         stock_repo: Repository for stock data
         order_repo: Repository for order data
-        session: Cached session with rate limiting
         batch_size: Number of tickers to validate in each batch
         batch_delay: Delay in seconds between batches
         interactive: Whether to prompt for user input when validation fails
+    Import and validate orders from a CSV file, using batch processing
+    and letting yfinance manage its own sessions.
     """
     try:
         # Read CSV, converting everything to string and filling empty with ''
@@ -636,10 +626,9 @@ def import_valid_orders(
     if stocks_to_validate:
         logger.info(f"Validating {len(stocks_to_validate)} new stocks in batches")
 
-        # Use batch validation with fallback
+        # Use batch validation without custom session
         validation_results = batch_validate_with_fallback(
             stocks_to_validate,
-            session,
             batch_size=batch_size,
             batch_delay=batch_delay,
             interactive=interactive,

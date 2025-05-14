@@ -12,7 +12,6 @@ from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
 from stock_tracker.utils.setup_logging import setup_logging
-from stock_tracker.yfinance_api import RateLimitedCachedSession, get_yfinance_session
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -27,19 +26,13 @@ def main() -> None:
 
     # Set up app
     setup_logging(config.log_config_path, config.log_level)
-    session: RateLimitedCachedSession = get_yfinance_session(
-        cache_path=config.yf_cache_path,
-        requests_per_window=config.yf_max_requests,
-        window_seconds=config.yf_request_interval_seconds,
-        cache_expiry=config.yf_cache_expiry,
-    )
 
     # Run app with a single database connection
     with Database(config.db_path) as db:
-        run_app(config, session, db)
+        run_app(config, db)
 
 
-def run_app(config: AppConfig, session: RateLimitedCachedSession, db: Database) -> None:
+def run_app(config: AppConfig, db: Database) -> None:
     """Run the application with explicit dependencies."""
     db.create_tables_if_not_exists()
 
@@ -49,7 +42,7 @@ def run_app(config: AppConfig, session: RateLimitedCachedSession, db: Database) 
     corp_action_repo: CorporateActionRepository = CorporateActionRepository(db)
     fx_rate_repo: FxRateRepository = FxRateRepository(db)
 
-    import_valid_orders(config.csv_path, stock_repo, order_repo, session)
+    import_valid_orders(config.csv_path, stock_repo, order_repo)
     # performance = calculate_portfolio_performance(db, session)
 
     # Display results
