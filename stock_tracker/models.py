@@ -1,7 +1,6 @@
 # models.py
 from dataclasses import dataclass
 from datetime import datetime, date
-from sqlite3 import Row
 
 
 @dataclass
