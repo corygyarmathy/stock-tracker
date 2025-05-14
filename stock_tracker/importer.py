@@ -9,7 +9,7 @@ import yfinance as yf
 from stock_tracker.models import Stock, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_repository import StockRepository
-from stock_tracker.yfinance_api import CachedLimiterSession
+from stock_tracker.yfinance_api import RateLimitedCachedSession
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -215,7 +215,7 @@ def import_valid_orders(
     csv_path: Path,
     stock_repo: StockRepository,
     order_repo: OrderRepository,
-    session: CachedLimiterSession,  # Pass the session down
+    session: RateLimitedCachedSession,
 ) -> None:
     try:
         # Read CSV, converting everything to string and filling empty with ''

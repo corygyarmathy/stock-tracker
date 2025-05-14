@@ -7,7 +7,7 @@ from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
 from stock_tracker.importer import import_valid_tickers
 from stock_tracker.utils.setup_logging import setup_logging
-from stock_tracker.yfinance_api import CachedLimiterSession, get_yfinance_session
+from stock_tracker.yfinance_api import RateLimitedCachedSession, get_yfinance_session
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def main() -> None:
         run_app(config, session, db)
 
 
-def run_app(config: AppConfig, session: CachedLimiterSession, db: Database) -> None:
+def run_app(config: AppConfig, session: RateLimitedCachedSession, db: Database) -> None:
     """Run the application with explicit dependencies."""
 
 

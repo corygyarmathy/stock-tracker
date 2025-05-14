@@ -40,7 +40,7 @@
 
         # Select the specific version of the package you want to pin
         # Ensure you use the correct pythonPackages set (e.g., python3Packages) from the stable source
-        pinnedRequestsRatelimiter = stableNixpkgs.python3Packages.requests-ratelimiter;
+        # pinnedRequestsRatelimiter = stableNixpkgs.python3Packages.requests-ratelimiter;
         # --- End Pinning Logic ---
 
         # Use the python interpreter from the unstable source (generally desired)
@@ -53,8 +53,6 @@
           yfinance
           requests
           requests-cache
-          # REMOVE the requests-ratelimiter from the unstable list
-          # requests-ratelimiter
           responses
           termgraph
           pytest-mock
@@ -67,7 +65,7 @@
         ];
 
         # Combine the unstable packages list with the single pinned package
-        pythonPackages = python.withPackages (ps: pythonPackagesList ++ [ pinnedRequestsRatelimiter ]);
+        pythonPackages = python.withPackages (ps: pythonPackagesList ++ [ ]); # add package in square brackets
 
       in
       {
