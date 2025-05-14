@@ -522,7 +522,7 @@ def import_valid_orders(
                     continue
 
                 # Save to database
-                _ = stock_repo.insert(stock)
+                _ = stock_repo.upsert(stock)
 
                 # If the symbol was corrected, store the mapping
                 if original_key != (new_symbol.upper(), new_exchange.upper()):
