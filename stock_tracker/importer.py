@@ -235,18 +235,16 @@ def batch_validate_with_fallback(
     # First try standard batch validation (more efficient)
     logger.info(f"Batch validating {len(tickers_to_validate)} tickers in {total_batches} batches")
 
-    # Process batch results
-    for i, (symbol, exchange) in enumerate(tickers_to_validate):
-        full_symbol: str = f"{symbol}.{exchange}"
-        ticker_obj: yf.Ticker | None = batch_results.get(full_symbol)
+    # Process in batches with generous delays
+    for i in range(0, len(tickers_to_validate), batch_size):
+        batch = tickers_to_validate[i : i + batch_size]
+        batch_num = i // batch_size + 1
 
-        if ticker_obj:
-            # Successfully validated
-            results[(symbol, exchange)] = (symbol, exchange, ticker_obj)
-        elif interactive:
-            # If interactive and batch validation failed, try individual validation with fallback
+        logger.info(f"Processing batch {batch_num}/{total_batches} ({len(batch)} tickers)")
+
+        for j, (symbol, exchange) in enumerate(batch):
             logger.info(
-                f"Ticker {i + 1}/{len(tickers_to_validate)}: {full_symbol} failed batch validation, trying interactive search..."
+                f"Validating ticker {i + j + 1}/{len(tickers_to_validate)}: {symbol}.{exchange}"
             )
 
             # Try validation without custom session
