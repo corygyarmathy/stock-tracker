@@ -480,6 +480,7 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
         print("No alternatives found.")
         return None
 
+    logger.info(f"Found {len(results)} results. Prompting user to select.")
     col_widths: dict[str, int] = {
         "index": 4,
         "symbol": 12,
