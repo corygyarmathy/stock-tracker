@@ -150,45 +150,6 @@ def is_valid_ticker(symbol: str, exchange: str, max_retries: int = 3) -> yf.Tick
     return None
 
 
-def validate_tickers_batch(
-    symbols_with_exchange: list[tuple[str, str]],
-    session: RateLimitedCachedSession,
-    batch_size: int = 10,
-    batch_delay: float = 1.0,
-) -> dict[str, yf.Ticker | None]:
-    """
-    Validates multiple tickers in batches to manage rate limiting more effectively.
-
-    :param symbols_with_exchange: List of (symbol, exchange) tuples to validate
-    :param session: Cached session with rate limiting
-    :param batch_size: Number of tickers to process in each batch
-    :param batch_delay: Delay in seconds between batches
-    :return: Dictionary mapping full symbols to validated Ticker objects (or None if invalid)
-    """
-    results: dict[str, yf.Ticker | None] = {}
-
-    # Process in batches
-    for i in range(0, len(symbols_with_exchange), batch_size):
-        batch: list[tuple[str, str]] = symbols_with_exchange[i : i + batch_size]
-
-        logger.info(
-            f"Processing batch {i // batch_size + 1}/{(len(symbols_with_exchange) - 1) // batch_size + 1} ({len(batch)} tickers)"
-        )
-
-        # Process each ticker in the batch
-        for symbol, exchange in batch:
-            full_symbol: str = f"{symbol}.{exchange}"
-            ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange, session)
-            results[full_symbol] = ticker
-
-        # Only delay if we're not on the last batch
-        if i + batch_size < len(symbols_with_exchange):
-            logger.debug(f"Sleeping for {batch_delay} seconds between batches")
-            time.sleep(batch_delay)
-
-    return results
-
-
 def validate_ticker_with_fallback(
     symbol: str, exchange: str, interactive: bool = True
 ) -> tuple[str | None, str | None, yf.Ticker | None]:
