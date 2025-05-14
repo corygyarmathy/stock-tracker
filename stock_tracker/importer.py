@@ -225,10 +225,6 @@ def validate_tickers_batch(
         logger.info(
             f"Processing batch {i // batch_size + 1}/{(len(symbols_with_exchange) - 1) // batch_size + 1} ({len(batch)} tickers)"
         )
-        return result.quotes
-    except Exception as e:
-        logger.error(f"Search failed for {ticker}: {e}")
-        return []
 
         # Process each ticker in the batch
         for symbol, exchange in batch:
