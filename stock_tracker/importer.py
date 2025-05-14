@@ -212,8 +212,8 @@ def validate_ticker_with_fallback(
 
 def batch_validate_with_fallback(
     tickers_to_validate: list[tuple[str, str]],
-    batch_size: int = 5,
-    batch_delay: float = 2.0,
+    batch_size: int = 2,  # Smaller batch size
+    batch_delay: float = 15.0,  # Longer delay between batches
     interactive: bool = True,
 ) -> dict[tuple[str, str], tuple[str | None, str | None, yf.Ticker | None]]:
     """
@@ -491,8 +491,8 @@ def import_valid_orders(
     csv_path: Path,
     stock_repo: StockRepository,
     order_repo: OrderRepository,
-    batch_size: int = 5,
-    batch_delay: float = 2.0,
+    batch_size: int = 2,
+    batch_delay: float = 15.0,
     interactive: bool = True,
 ) -> None:
     """
