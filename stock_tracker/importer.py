@@ -7,16 +7,12 @@ from typing import Any
 import pandas as pd
 import yfinance as yf
 from numpy import random
-from requests import Response, Session
-from requests.exceptions import HTTPError, RequestException
 
 from stock_tracker.models import Stock, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_repository import StockRepository
 
 logger: logging.Logger = logging.getLogger(__name__)
-
-YF_SEARCH_URL = "https://query2.finance.yahoo.com/v1/finance/search"
 
 
 # --- CSV Parsing Functions  ---
@@ -284,61 +280,6 @@ def batch_validate_with_fallback(
             time.sleep(batch_delay)
 
     return results
-
-
-def search_yfinance(
-    query: str,
-    session: Session,
-    max_retries: int = 3,
-    backoff_factor: float = 2.0,
-    timeout: float = 5.0,
-) -> list[dict[str, Any]] | None:
-    """
-    Search Yahoo Finance using the same endpoint as yf.Search().
-    Handles rate limits, retries, and session-based customization.
-    Returns a list of search results (dicts), or None on failure.
-    """
-    params = {"q": query}
-    headers = {
-        "User-Agent": "Mozilla/5.0",  # Required to avoid 403s
-        "Accept": "application/json",
-    }
-
-    for attempt in range(1, max_retries + 1):
-        try:
-            logger.debug(f"Searching Yahoo Finance for: {query} (attempt {attempt}/{max_retries})")
-            response: Response = session.get(
-                YF_SEARCH_URL,
-                params=params,
-                headers=headers,
-                timeout=timeout,
-            )
-            response.raise_for_status()
-
-            data = response.json()
-            results = data.get("quotes", [])
-            logger.debug(f"Found {len(results)} results for search '{query}'")
-            return results
-
-        except HTTPError as e:
-            if response.status_code == 429:
-                sleep_time = backoff_factor**attempt
-                logger.warning(
-                    f"Rate limited for search '{query}'. Retrying in {sleep_time:.2f} seconds (attempt {attempt}/{max_retries})"
-                )
-                time.sleep(sleep_time)
-            else:
-                logger.error(f"HTTP error during search for '{query}': {e}")
-                break
-        except RequestException as e:
-            logger.error(f"Request failed for search '{query}': {e}")
-            break
-        except ValueError as e:
-            logger.error(f"Invalid JSON response for search '{query}': {e}")
-            break
-
-    logger.error(f"Max retries exceeded for search '{query}'. Giving up.")
-    return None
 
 
 def search_ticker_quotes(ticker: str, max_retries: int = 3) -> list[dict[str, Any]]:
