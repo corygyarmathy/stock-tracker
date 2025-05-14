@@ -249,6 +249,15 @@ def search_ticker_quotes(
 
 
 def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """
+    Display search results and prompt user to select the correct ticker.
+
+    Args:
+        results: List of ticker search results
+
+    Returns:
+        Selected ticker info or None if user skips
+    """
     if not results:
         print("No alternatives found.")
         return None
