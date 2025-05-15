@@ -413,7 +413,7 @@ def import_valid_orders(
         corrected_key = stock_mapping.get(original_key, original_key)
 
         # Get the validated stock
-        stock: Stock | None = validated_stocks.get(corrected_key)
+        stock = validated_stocks.get(corrected_key)
 
         if not stock:
             logger.warning(
