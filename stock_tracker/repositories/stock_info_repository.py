@@ -1,7 +1,10 @@
 from datetime import datetime
+import logging
 from sqlite3 import Row
 from stock_tracker.db import Database
 from stock_tracker.models import StockInfo
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class StockInfoRepository:
@@ -26,6 +29,7 @@ class StockInfoRepository:
 
     def update(self, stock_info: StockInfo) -> None:
         """Update an existing StockInfo record."""
+        logger.debug(f"Performing an update on StockInfo record, ID {stock_info.stock_id}")
         _ = self.db.execute(
             """
             UPDATE stock_info
@@ -51,13 +55,17 @@ class StockInfoRepository:
         Insert a stock_info if it doesn't exist, or update it if it already exists.
         Uses the stock_id as the unique identifier.
         """
+        logger.debug(f"Checking if StockInfo w/ id {stock_info.stock_id} already exists in db.")
         existing: StockInfo | None = self.get_by_stock_id(stock_info.stock_id)
         if existing:
+            logger.debug(f"StockInfo already exists in db, updating.")
             self.update(stock_info)
         else:
+            logger.debug(f"StockInfo doesn't exists in db, inserting.")
             self.insert(stock_info)
 
     def get_by_stock_id(self, stock_id: int) -> StockInfo | None:
+        logger.debug(f"Getting StockInfo by stock id {stock_id}")
         row: Row | None = self.db.query_one(
             "SELECT * FROM stock_info WHERE stock_id = ?",
             (stock_id,),
