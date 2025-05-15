@@ -6,7 +6,6 @@ from typing import Any
 
 import pandas as pd
 import yfinance as yf
-from numpy import random
 
 from stock_tracker.models import Stock, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
@@ -65,85 +64,22 @@ def parse_csv_fee(value: Any) -> float:
     return fee
 
 
-def is_valid_ticker(symbol: str, exchange: str, max_retries: int = 3) -> yf.Ticker | None:
+def is_valid_ticker(symbol: str, exchange: str) -> bool:
     """
     Validates if a ticker symbol is valid by checking if it has valid price information.
     Implements exponential backoff for retries on potential API request issues.
 
     :param symbol: Stock symbol (e.g., "AAPL")
     :param exchange: Exchange code (e.g., "NASDAQ", "AX"). Can be None or empty for US stocks.
-    :param max_retries: Maximum number of retry attempts for API calls
-    :return: Ticker object if valid and price info is found, None otherwise
+    :return: True if valid, False if not
     Uses yfinance's built-in session management instead of a custom session.
     """
 
-    # Try common US exchanges with symbol only first
-    us_exchanges = ["NASDAQ", "NYSE", "ARCA", "PCX"]  # NYSE Arca may just be ARCA or blank
-    potential_tickers: list[str] = []
-
-    if exchange and exchange.upper() in us_exchanges:
-        potential_tickers.append(symbol)  # For US exchanges, try symbol alone first
-        potential_tickers.append(f"{symbol}.{exchange}")  # And then with suffix, just in case
-    elif exchange:  # For non-US exchanges, suffix is usually required
-        potential_tickers.append(f"{symbol}.{exchange.upper()}")
-        potential_tickers.append(symbol)  # As a fallback, try symbol alone
-    else:  # No exchange info provided
-        potential_tickers.append(symbol)
-
-    # Remove duplicates if any by converting to dict and back to list
-    potential_tickers = list(dict.fromkeys(potential_tickers))
-
-    for attempt_ticker_str in potential_tickers:
-        logger.debug(f"Attempting to validate: {attempt_ticker_str}")
-        retry_count = 0
-
-        while retry_count <= max_retries:
-            try:
-                ticker_obj = yf.Ticker(attempt_ticker_str)
-
-                # Use a try/except block for the fast_info property
-                try:
-                    price = ticker_obj.fast_info.get("last_price")
-
-                    if price is not None and price > 0:
-                        logger.info(f"Validated {attempt_ticker_str}: Price={price}")
-                        return ticker_obj
-                except Exception as e:
-                    logger.debug(f"Failed to get fast_info for {attempt_ticker_str}: {e}")
-
-                # Increment retry counter
-                retry_count += 1
-                if retry_count > max_retries:
-                    break
-
-                # Exponential backoff with jitter
-                wait_time = min(60, (2**retry_count) + (random.randint(0, 1000) / 1000))
-                logger.warning(f"Retrying {attempt_ticker_str} in {wait_time:.2f} seconds")
-                time.sleep(wait_time)
-
-            except Exception as e:
-                error_message = str(e).lower()
-
-                if "no data found" in error_message or "404" in error_message:
-                    logger.warning(f"Invalid ticker {attempt_ticker_str}: {e}")
-                    break  # Try next format
-
-                if "rate limit" in error_message or "too many requests" in error_message:
-                    retry_count += 1
-                    if retry_count > max_retries:
-                        logger.error(f"Rate limit exceeded for {attempt_ticker_str}")
-                        break
-
-                    # Longer wait for rate limits
-                    wait_time = min(120, (2**retry_count) + (random.randint(0, 1000) / 1000))
-                    logger.warning(f"Rate limited. Waiting {wait_time:.2f}s before retry")
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"Error for {attempt_ticker_str}: {e}")
-                    break
+    if get_ticker(symbol, exchange):
+        return True
 
     logger.warning(f"Failed to validate {symbol} (exchange: {exchange}) after trying all formats")
-    return None
+    return False
 
 
 def validate_ticker_with_fallback(
