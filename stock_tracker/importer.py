@@ -10,7 +10,7 @@ import yfinance as yf
 from stock_tracker.models import Stock, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_repository import StockRepository
-from stock_tracker.yfinance_api import search_ticker_quotes
+from stock_tracker.yfinance_api import get_valid_ticker, search_ticker_quotes, yf_ticker_to_stock
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -65,24 +65,6 @@ def parse_csv_fee(value: Any) -> float:
     return fee
 
 
-def is_valid_ticker(symbol: str, exchange: str) -> bool:
-    """
-    Validates if a ticker symbol is valid by checking if it has valid price information.
-    Implements exponential backoff for retries on potential API request issues.
-
-    :param symbol: Stock symbol (e.g., "AAPL")
-    :param exchange: Exchange code (e.g., "NASDAQ", "AX"). Can be None or empty for US stocks.
-    :return: True if valid, False if not
-    Uses yfinance's built-in session management instead of a custom session.
-    """
-
-    if get_ticker(symbol, exchange):
-        return True
-
-    logger.warning(f"Failed to validate {symbol} (exchange: {exchange}) after trying all formats")
-    return False
-
-
 def validate_ticker_with_fallback(
     symbol: str, exchange: str, interactive: bool = True
 ) -> tuple[str | None, str | None, yf.Ticker | None]:
@@ -101,7 +83,7 @@ def validate_ticker_with_fallback(
     # First, try with the provided symbol and exchange
     full_symbol: str = f"{symbol}.{exchange}" if exchange else symbol
     logger.info(f"Attempting to validate ticker {full_symbol}")
-    ticker: yf.Ticker | None = is_valid_ticker(symbol, exchange)
+    ticker: yf.Ticker | None = get_valid_ticker(symbol, exchange)
 
     if ticker:
         logger.info(f"Successfully validated ticker: {full_symbol}")
@@ -129,7 +111,7 @@ def validate_ticker_with_fallback(
                     logger.info(f"User selected alternative: {new_symbol}.{new_exchange}")
 
                     # Validate the selected ticker
-                    new_ticker = is_valid_ticker(new_symbol, new_exchange)
+                    new_ticker = get_valid_ticker(new_symbol, new_exchange)
                     if new_ticker:
                         return new_symbol, new_exchange, new_ticker
                     else:
@@ -178,7 +160,7 @@ def batch_validate_with_fallback(
             )
 
             # Try validation without custom session
-            ticker_obj = is_valid_ticker(symbol, exchange)
+            ticker_obj: yf.Ticker | None = get_valid_ticker(symbol, exchange)
 
             if ticker_obj:
                 # Successfully validated
