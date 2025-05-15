@@ -282,39 +282,6 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
             print("Invalid input. Enter a number.")
 
 
-def yf_ticker_to_stock(ticker: yf.Ticker) -> Stock | None:
-    """Converts yfinance Ticker info to a Stock model, with basic validation."""
-    info: dict[str, Any] = ticker.info
-
-    # Basic validation on essential fields from yfinance
-    symbol = info.get("symbol")
-    exchange = info.get("exchange")
-    currency = info.get("currency")
-    name = info.get("shortName") or info.get("longName")  # Allow name to be None
-
-    if not symbol or not isinstance(symbol, str):
-        logger.error(f"YF info missing valid symbol for {ticker.ticker}: {info.get('symbol')}")
-        return None
-    if not exchange or not isinstance(exchange, str):
-        logger.error(f"YF info missing valid exchange for {symbol}: {info.get('exchange')}")
-        # TODO: Can we make a guess based on the ticker format? e.g. AAPL -> NASDAQ, AAPL.L -> LSE?
-        # This is complex; for now, error out or default
-        exchange = "UNKNOWN"  # Or return None if unknown exchange is unacceptable
-    if not currency or not isinstance(currency, str):
-        logger.warning(
-            f"YF info missing valid currency for {symbol}.{exchange}: {info.get('currency')}. Defaulting to USD."
-        )
-        currency = "USD"  # Or handle this as an error if currency is mandatory
-
-    return Stock(
-        id=None,
-        ticker=symbol.upper(),
-        exchange=exchange,
-        currency=currency.upper(),  # Standardise currency codes
-        name=name,
-    )
-
-
 def import_valid_orders(
     csv_path: Path,
     stock_repo: StockRepository,
