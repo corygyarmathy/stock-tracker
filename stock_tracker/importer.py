@@ -264,27 +264,39 @@ def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | Non
             print("Invalid input. Enter a number.")
 
 
-def import_valid_orders(
-    csv_path: Path,
-    stock_repo: StockRepository,
-    order_repo: OrderRepository,
-    batch_size: int = 2,
-    batch_delay: float = 15.0,
-    interactive: bool = True,
-) -> None:
+def read_csv_file(csv_path: Path) -> pd.DataFrame | None:
     """
-    Import and validate orders from a CSV file, using batch processing for stock validation
-    with interactive fallback for invalid tickers.
+    Read and validate a CSV file.
 
     Args:
-        csv_path: Path to the CSV file containing orders
-        stock_repo: Repository for stock data
-        order_repo: Repository for order data
-        batch_size: Number of tickers to validate in each batch
-        batch_delay: Delay in seconds between batches
-        interactive: Whether to prompt for user input when validation fails
-    Import and validate orders from a CSV file, using batch processing
-    and letting yfinance manage its own sessions.
+        csv_path: Path to the CSV file
+
+    Returns:
+        DataFrame containing the CSV data or None if there was an error
+    """
+    try:
+        df: pd.DataFrame = pd.read_csv(csv_path, dtype=str).fillna("")
+        if df.empty:
+            logger.warning(f"CSV file is empty: {csv_path}")
+            return None
+        return df
+    except FileNotFoundError:
+        logger.error(f"CSV file not found: {csv_path}")
+        return None
+    except Exception as e:
+        logger.error(f"Error reading CSV file {csv_path}: {e}")
+        return None
+
+
+def extract_unique_tickers(df: pd.DataFrame) -> set[tuple[str, str]]:
+    """
+    Extract unique ticker/exchange combinations from DataFrame.
+
+    Args:
+        df: DataFrame containing stock order data
+
+    Returns:
+        Set of unique (ticker, exchange) tuples
     """
     # Common tickers and their exchanges - can help reduce API calls
     common_tickers = {
@@ -302,26 +314,13 @@ def import_valid_orders(
         "WMT": "NYSE",
     }
 
-    try:
-        # Read CSV
-        df: pd.DataFrame = pd.read_csv(csv_path, dtype=str).fillna("")
-        if df.empty:
-            logger.warning(f"CSV file is empty: {csv_path}")
-            return
-    except FileNotFoundError:
-        logger.error(f"CSV file not found: {csv_path}")
-        return
-    except Exception as e:
-        logger.error(f"Error reading CSV file {csv_path}: {e}")
-        return
-
-    # Step 1: Extract unique ticker/exchange combinations from the CSV
     unique_tickers: set[tuple[str, str]] = set()
 
     for i in range(len(df)):
         row_data: dict[str, str] = df.iloc[i].to_dict()
         symbol: str = row_data.get("ticker", "").strip().upper()
         exchange: str = row_data.get("exchange", "").strip().upper()
+
         # Use common ticker mapping if known
         if symbol in common_tickers and not exchange:
             exchange = common_tickers[symbol]
@@ -330,66 +329,122 @@ def import_valid_orders(
         if symbol and exchange:
             unique_tickers.add((symbol.upper(), exchange.upper()))
 
-    if not unique_tickers:
-        logger.warning(f"No valid ticker/exchange combinations found in CSV: {csv_path}")
-        return
+    return unique_tickers
 
-    logger.info(f"Found {len(unique_tickers)} unique stock symbols to validate")
 
-    # Step 2: Check which stocks already exist in the database
+def get_existing_stocks(
+    stock_repo: StockRepository, tickers: set[tuple[str, str]]
+) -> dict[tuple[str, str], Stock]:
+    """
+    Check which stocks already exist in the database.
+
+    Args:
+        stock_repo: Repository for stock data
+        tickers: Set of (ticker, exchange) tuples to check
+
+    Returns:
+        Dictionary mapping (ticker, exchange) to existing Stock objects
+    """
     existing_stocks: dict[tuple[str, str], Stock] = {}
-    for symbol, exchange in unique_tickers:
+
+    for symbol, exchange in tickers:
         stock: Stock | None = stock_repo.get_by_ticker_exchange(symbol, exchange)
         if stock:
             existing_stocks[(symbol, exchange)] = stock
             logger.debug(f"Stock {symbol}.{exchange} already exists in database")
 
-    # Step 3: Validate stocks not in the database
-    stocks_to_validate: list[tuple[str, str]] = [
-        ticker for ticker in unique_tickers if ticker not in existing_stocks
-    ]
+    return existing_stocks
 
-    validation_results: dict[tuple[str, str], tuple[str | None, str | None, yf.Ticker | None]] = {}
-    stock_mapping: dict[tuple[str, str], tuple[str, str]] = {}  # Maps original to corrected symbols
+
+def validate_and_save_stocks(
+    stocks_to_validate: list[tuple[str, str]],
+    stock_repo: StockRepository,
+    existing_stocks: dict[tuple[str, str], Stock],
+    batch_size: int = 2,
+    batch_delay: float = 15.0,
+    interactive: bool = True,
+) -> tuple[dict[tuple[str, str], Stock], dict[tuple[str, str], tuple[str, str]]]:
+    """
+    Validate stocks not in the database and save them.
+
+    Args:
+        stocks_to_validate: List of (ticker, exchange) tuples to validate
+        stock_repo: Repository for stock data
+        existing_stocks: Dictionary of stocks that already exist in the database
+        batch_size: Number of tickers to validate in each batch
+        batch_delay: Delay in seconds between batches
+        interactive: Whether to prompt for user input when validation fails
+
+    Returns:
+        Tuple of (validated_stocks, stock_mapping) where:
+        - validated_stocks: Dictionary mapping (ticker, exchange) to Stock objects
+        - stock_mapping: Dictionary mapping original (ticker, exchange) to corrected (ticker, exchange)
+    """
     validated_stocks: dict[tuple[str, str], Stock] = {}
-    validated_stocks.update(existing_stocks)  # Start with existing stocks
+    stock_mapping: dict[tuple[str, str], tuple[str, str]] = {}
 
-    if stocks_to_validate:
-        logger.info(f"Validating {len(stocks_to_validate)} new stocks")
+    # Start with existing stocks
+    validated_stocks.update(existing_stocks)
 
-        # Use batch validation without custom session
-        validation_results = batch_validate_with_fallback(
-            stocks_to_validate,
-            batch_size=batch_size,
-            batch_delay=batch_delay,
-            interactive=interactive,
-        )
+    if not stocks_to_validate:
+        logger.info("No new stocks to validate")
+        return validated_stocks, stock_mapping
 
-        # Process validation results
-        for original_key, (new_symbol, new_exchange, ticker_obj) in validation_results.items():
-            if new_symbol and new_exchange and ticker_obj:
-                # Create stock object from ticker data
-                stock = yf_ticker_to_stock(ticker_obj)
+    logger.info(f"Validating {len(stocks_to_validate)} new stocks")
 
-                if not stock:
-                    logger.error(f"Failed to convert ticker to Stock object")
-                    continue
+    # Use batch validation without custom session
+    validation_results = batch_validate_with_fallback(
+        stocks_to_validate,
+        batch_size=batch_size,
+        batch_delay=batch_delay,
+        interactive=interactive,
+    )
 
-                # Save to database
-                _ = stock_repo.upsert(stock)
+    # Process validation results
+    for original_key, (new_symbol, new_exchange, ticker_obj) in validation_results.items():
+        if new_symbol and new_exchange and ticker_obj:
+            # Create stock object from ticker data
+            stock = yf_ticker_to_stock(ticker_obj)
 
-                # If symbol was corrected, store mapping
-                if original_key != (new_symbol.upper(), new_exchange.upper()):
-                    stock_mapping[original_key] = (new_symbol.upper(), new_exchange.upper())
-                    logger.info(
-                        f"Symbol corrected: {original_key[0]}.{original_key[1]} -> {new_symbol}.{new_exchange}"
-                    )
+            if not stock:
+                logger.error(f"Failed to convert ticker to Stock object")
+                continue
 
-                # Add to validated stocks cache
-                validated_stocks[(new_symbol.upper(), new_exchange.upper())] = stock
-                logger.info(f"Added new stock to database: {new_symbol}.{new_exchange}")
+            # Save to database
+            _ = stock_repo.upsert(stock)
 
-    # Step 4: Process each row in the CSV and create orders
+            # If symbol was corrected, store mapping
+            if original_key != (new_symbol.upper(), new_exchange.upper()):
+                stock_mapping[original_key] = (new_symbol.upper(), new_exchange.upper())
+                logger.info(
+                    f"Symbol corrected: {original_key[0]}.{original_key[1]} -> {new_symbol}.{new_exchange}"
+                )
+
+            # Add to validated stocks cache
+            validated_stocks[(new_symbol.upper(), new_exchange.upper())] = stock
+            logger.info(f"Added new stock to database: {new_symbol}.{new_exchange}")
+
+    return validated_stocks, stock_mapping
+
+
+def create_orders_from_csv(
+    df: pd.DataFrame,
+    validated_stocks: dict[tuple[str, str], Stock],
+    stock_mapping: dict[tuple[str, str], tuple[str, str]],
+    order_repo: OrderRepository,
+) -> int:
+    """
+    Create stock orders from CSV data.
+
+    Args:
+        df: DataFrame containing stock order data
+        validated_stocks: Dictionary mapping (ticker, exchange) to Stock objects
+        stock_mapping: Dictionary mapping original (ticker, exchange) to corrected (ticker, exchange)
+        order_repo: Repository for order data
+
+    Returns:
+        Number of orders successfully inserted
+    """
     inserted_orders = 0
 
     for i in range(len(df)):
@@ -469,6 +524,50 @@ def import_valid_orders(
             )
             continue
 
-    logger.info(
-        f"Finished importing orders. Successfully imported {inserted_orders} orders from {csv_path}"
+    logger.info(f"Finished importing orders. Successfully imported {inserted_orders} orders")
+    return inserted_orders
+
+
+def import_valid_orders(
+    csv_path: Path,
+    stock_repo: StockRepository,
+    order_repo: OrderRepository,
+    batch_size: int = 2,
+    batch_delay: float = 15.0,
+    interactive: bool = True,
+) -> None:
+    """
+    Import and validate orders from a CSV file.
+
+    Args:
+        csv_path: Path to the CSV file containing orders
+        stock_repo: Repository for stock data
+        order_repo: Repository for order data
+        batch_size: Number of tickers to validate in each batch
+        batch_delay: Delay in seconds between batches
+        interactive: Whether to prompt for user input when validation fails
+    """
+    # Read and validate CSV
+    df = read_csv_file(csv_path)
+    if df is None or df.empty:
+        return
+
+    # Extract unique tickers from CSV
+    unique_tickers = extract_unique_tickers(df)
+    if not unique_tickers:
+        logger.warning(f"No valid ticker/exchange combinations found in CSV: {csv_path}")
+        return
+
+    logger.info(f"Found {len(unique_tickers)} unique stock symbols to validate")
+
+    # Check which stocks already exist and validate new ones
+    existing_stocks = get_existing_stocks(stock_repo, unique_tickers)
+    stocks_to_validate = [ticker for ticker in unique_tickers if ticker not in existing_stocks]
+
+    # Validate new stocks and update database
+    validated_stocks, stock_mapping = validate_and_save_stocks(
+        stocks_to_validate, stock_repo, existing_stocks, batch_size, batch_delay, interactive
     )
+
+    # Create orders from CSV data
+    create_orders_from_csv(df, validated_stocks, stock_mapping, order_repo)
