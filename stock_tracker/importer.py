@@ -589,4 +589,4 @@ def import_valid_orders(
     )
 
     # Create orders from CSV data
-    create_orders_from_csv(df, validated_stocks, stock_mapping, order_repo)
+    _ = create_orders_from_csv(df, validated_stocks, stock_mapping, order_repo)
