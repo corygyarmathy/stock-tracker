@@ -411,6 +411,7 @@ def validate_and_save_stocks(
                 + "new_symbol: {new_symbol}, new_exchange: {new_exchange}, ticker_obj: {ticker_obj}."
             )
             continue
+        try:
             # Extract both models from a single ticker object
             stock, stock_info = TickerService.extract_models(ticker_obj)
 
@@ -431,6 +432,9 @@ def validate_and_save_stocks(
             # Add to validated stocks cache
             validated_stocks[(new_symbol.upper(), new_exchange.upper())] = stock
             logger.info(f"Added new stock to database: {new_symbol}.{new_exchange}")
+        except Exception as e:
+            logger.error(f"Failed to process ticker data: {e}")
+            continue
 
     return validated_stocks, stock_mapping
 
