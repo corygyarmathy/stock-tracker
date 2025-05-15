@@ -10,6 +10,7 @@ import yfinance as yf
 from stock_tracker.models import Stock, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_repository import StockRepository
+from stock_tracker.yfinance_api import search_ticker_quotes
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -213,51 +214,6 @@ def batch_validate_with_fallback(
             time.sleep(batch_delay)
 
     return results
-
-
-def search_ticker_quotes(ticker: str, max_retries: int = 3) -> list[dict[str, Any]]:
-    """
-    Search for ticker symbols in Yahoo Finance with retry mechanism.
-
-    Args:
-        ticker: The search query (ticker or company name)
-        max_retries: Maximum number of retry attempts
-
-    Returns:
-        List of matching ticker quotes
-    Uses yfinance's built-in session management.
-    """
-    retry_count = 0
-
-    while retry_count <= max_retries:
-        try:
-            logger.debug(f"Searching for tickers which match: {ticker}")
-            # Don't pass a custom session
-            result: yf.Search = yf.Search(query=ticker, max_results=20, news_count=0, lists_count=0)
-            return result.quotes
-        except Exception as e:
-            error_message: str = str(e).lower()
-
-            # Check if this is a rate limit error
-            if "rate limit" in error_message or "too many requests" in error_message:
-                retry_count += 1
-
-                if retry_count > max_retries:
-                    logger.error(f"Max retries exceeded for search '{ticker}'. Giving up.")
-                    return []
-
-                # Exponential backoff with jitter
-                wait_time: int = min(60, (2**retry_count) + (random.randint(0, 1000) / 1000))
-                logger.warning(
-                    f"Rate limited for search '{ticker}'. Retrying in {wait_time:.2f} seconds (attempt {retry_count}/{max_retries})"
-                )
-                time.sleep(wait_time)
-            else:
-                # If it's not a rate limit error, don't retry
-                logger.error(f"Search failed for '{ticker}': {e}")
-                return []
-
-    return []
 
 
 def prompt_user_to_select(results: list[dict[str, Any]]) -> dict[str, Any] | None:

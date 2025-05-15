@@ -1,2 +1,4 @@
 datetime,exchange,ticker,quantity,price_paid
 2023-01-15 9:00:00,NASDAQ,AAPL,10,445.92
+2023-01-15 9:00:00,PCX,IVV,10,445.92
+2023-01-15 9:00:00,AX,IVV,10,445.92
