@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from sqlite3 import Cursor, Row
 from stock_tracker.db import Database
 from stock_tracker.models import FxRate
