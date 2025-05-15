@@ -24,6 +24,39 @@ class StockInfoRepository:
             },
         )
 
+    def update(self, stock_info: StockInfo) -> None:
+        """Update an existing StockInfo record."""
+        _ = self.db.execute(
+            """
+            UPDATE stock_info
+            SET last_updated = :last_updated,
+                current_price = :current_price,
+                market_cap = :market_cap,
+                pe_ratio = :pe_ratio,
+                dividend_yield = :dividend_yield
+            WHERE stock_id = :stock_id
+            """,
+            {
+                "stock_id": stock_info.stock_id,
+                "last_updated": stock_info.last_updated,
+                "current_price": stock_info.current_price,
+                "market_cap": stock_info.market_cap,
+                "pe_ratio": stock_info.pe_ratio,
+                "dividend_yield": stock_info.dividend_yield,
+            },
+        )
+
+    def upsert(self, stock_info: StockInfo) -> None:
+        """
+        Insert a stock_info if it doesn't exist, or update it if it already exists.
+        Uses the stock_id as the unique identifier.
+        """
+        existing: StockInfo | None = self.get_by_stock_id(stock_info.stock_id)
+        if existing:
+            self.update(stock_info)
+        else:
+            self.insert(stock_info)
+
     def get_by_stock_id(self, stock_id: int) -> StockInfo | None:
         row: Row | None = self.db.query_one(
             "SELECT * FROM stock_info WHERE stock_id = ?",

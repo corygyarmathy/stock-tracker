@@ -422,7 +422,7 @@ def validate_and_save_stocks(
             if not stock.id:
                 raise ValueError(f"Missing id for {stock.name}")
             stock_info.stock_id = stock.id
-            stock_info_repo.insert(stock_info)
+            stock_info_repo.upsert(stock_info)
 
             # If symbol was corrected, store mapping
             if original_key != (new_symbol.upper(), new_exchange.upper()):
