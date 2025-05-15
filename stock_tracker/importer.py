@@ -448,6 +448,22 @@ def import_valid_orders(
     Import and validate orders from a CSV file, using batch processing
     and letting yfinance manage its own sessions.
     """
+    # Common tickers and their exchanges - can help reduce API calls
+    common_tickers = {
+        "AAPL": "NASDAQ",
+        "MSFT": "NASDAQ",
+        "GOOGL": "NASDAQ",
+        "GOOG": "NASDAQ",
+        "AMZN": "NASDAQ",
+        "META": "NASDAQ",
+        "TSLA": "NASDAQ",
+        "NVDA": "NASDAQ",
+        "JPM": "NYSE",
+        "XOM": "NYSE",
+        "V": "NYSE",
+        "WMT": "NYSE",
+    }
+
     try:
         # Read CSV, converting everything to string and filling empty with ''
         df: pd.DataFrame = pd.read_csv(csv_path, dtype=str).fillna("")
@@ -468,6 +484,10 @@ def import_valid_orders(
         row_data: dict[str, str] = df.iloc[i].to_dict()
         symbol: str = row_data.get("ticker", "").strip()
         exchange: str = row_data.get("exchange", "").strip()
+        # Use common ticker mapping if known
+        if symbol in common_tickers and not exchange:
+            exchange = common_tickers[symbol]
+            logger.info(f"Using known exchange {exchange} for {symbol}")
 
         if symbol and exchange:
             unique_tickers.add((symbol.upper(), exchange.upper()))
