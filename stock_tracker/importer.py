@@ -178,9 +178,7 @@ def validate_ticker_with_fallback(
         search_results = search_ticker_quotes(symbol)
 
         if search_results:
-            logger.info(
-                f"Successfully searched for ticker: {full_symbol}. Prompting user to select correct option."
-            )
+            logger.info(f"Found alternatives for {full_symbol}")
 
             # Prompt user to select from results
             selected = prompt_user_to_select(search_results)
@@ -228,7 +226,6 @@ def batch_validate_with_fallback(
     results: dict[tuple[str, str], tuple[str | None, str | None, yf.Ticker | None]] = {}
     total_batches = (len(tickers_to_validate) - 1) // batch_size + 1
 
-    # First try standard batch validation (more efficient)
     logger.info(f"Batch validating {len(tickers_to_validate)} tickers in {total_batches} batches")
 
     # Process in batches with generous delays
@@ -465,16 +462,16 @@ def import_valid_orders(
     }
 
     try:
-        # Read CSV, converting everything to string and filling empty with ''
+        # Read CSV
         df: pd.DataFrame = pd.read_csv(csv_path, dtype=str).fillna("")
         if df.empty:
-            logger.warning(f"CSV file is empty or contains no data rows: {csv_path}")
+            logger.warning(f"CSV file is empty: {csv_path}")
             return
     except FileNotFoundError:
         logger.error(f"CSV file not found: {csv_path}")
         return
     except Exception as e:
-        logger.error(f"Error reading or processing CSV file {csv_path}: {e}", exc_info=True)
+        logger.error(f"Error reading CSV file {csv_path}: {e}")
         return
 
     # Step 1: Extract unique ticker/exchange combinations from the CSV
@@ -498,17 +495,15 @@ def import_valid_orders(
 
     logger.info(f"Found {len(unique_tickers)} unique stock symbols to validate")
 
-    # Step 2: Check which stocks already exist in the database to avoid re-validation
+    # Step 2: Check which stocks already exist in the database
     existing_stocks: dict[tuple[str, str], Stock] = {}
     for symbol, exchange in unique_tickers:
         stock: Stock | None = stock_repo.get_by_ticker_exchange(symbol, exchange)
         if stock:
             existing_stocks[(symbol, exchange)] = stock
-            logger.debug(
-                f"Stock {symbol}.{exchange} already exists in database, skipping validation"
-            )
+            logger.debug(f"Stock {symbol}.{exchange} already exists in database")
 
-    # Step 3: Validate stocks that don't exist in the database
+    # Step 3: Validate stocks not in the database
     stocks_to_validate: list[tuple[str, str]] = [
         ticker for ticker in unique_tickers if ticker not in existing_stocks
     ]
@@ -519,7 +514,7 @@ def import_valid_orders(
     validated_stocks.update(existing_stocks)  # Start with existing stocks
 
     if stocks_to_validate:
-        logger.info(f"Validating {len(stocks_to_validate)} new stocks in batches")
+        logger.info(f"Validating {len(stocks_to_validate)} new stocks")
 
         # Use batch validation without custom session
         validation_results = batch_validate_with_fallback(
@@ -529,29 +524,27 @@ def import_valid_orders(
             interactive=interactive,
         )
 
-        # Process validation results and insert valid stocks into the database
+        # Process validation results
         for original_key, (new_symbol, new_exchange, ticker_obj) in validation_results.items():
             if new_symbol and new_exchange and ticker_obj:
                 # Create stock object from ticker data
                 stock = yf_ticker_to_stock(ticker_obj)
 
                 if not stock:
-                    logger.error(
-                        f"ticker_obj {ticker_obj.fast_info['symbol']} failed to be converted into a Stock obj."
-                    )
+                    logger.error(f"Failed to convert ticker to Stock object")
                     continue
 
                 # Save to database
                 _ = stock_repo.upsert(stock)
 
-                # If the symbol was corrected, store the mapping
+                # If symbol was corrected, store mapping
                 if original_key != (new_symbol.upper(), new_exchange.upper()):
                     stock_mapping[original_key] = (new_symbol.upper(), new_exchange.upper())
                     logger.info(
                         f"Symbol corrected: {original_key[0]}.{original_key[1]} -> {new_symbol}.{new_exchange}"
                     )
 
-                # Add to validated stocks cache using the new symbol
+                # Add to validated stocks cache
                 validated_stocks[(new_symbol.upper(), new_exchange.upper())] = stock
                 logger.info(f"Added new stock to database: {new_symbol}.{new_exchange}")
 
