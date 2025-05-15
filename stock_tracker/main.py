@@ -42,7 +42,7 @@ def run_app(config: AppConfig, db: Database) -> None:
     corp_action_repo: CorporateActionRepository = CorporateActionRepository(db)
     fx_rate_repo: FxRateRepository = FxRateRepository(db)
 
-    import_valid_orders(config.csv_path, stock_repo, order_repo)
+    import_valid_orders(config.csv_path, stock_repo, stock_info_repo, order_repo)
     # performance = calculate_portfolio_performance(db, session)
 
     # Display results

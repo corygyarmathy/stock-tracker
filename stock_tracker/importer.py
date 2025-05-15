@@ -9,8 +9,10 @@ import yfinance as yf
 
 from stock_tracker.models import Stock, StockOrder
 from stock_tracker.repositories.order_repository import OrderRepository
+from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
-from stock_tracker.yfinance_api import get_valid_ticker, search_ticker_quotes, yf_ticker_to_stock
+from stock_tracker.services.ticker_service import TickerService
+from stock_tracker.yfinance_api import get_valid_ticker, search_ticker_quotes
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -359,6 +361,7 @@ def get_existing_stocks(
 def validate_and_save_stocks(
     stocks_to_validate: list[tuple[str, str]],
     stock_repo: StockRepository,
+    stock_info_repo: StockInfoRepository,
     existing_stocks: dict[tuple[str, str], Stock],
     batch_size: int = 2,
     batch_delay: float = 15.0,
@@ -409,9 +412,15 @@ def validate_and_save_stocks(
             if not stock:
                 logger.error(f"Failed to convert ticker to Stock object")
                 continue
+            # Extract both models from a single ticker object
+            stock, stock_info = TickerService.extract_models(ticker_obj)
 
-            # Save to database
+            # Save stock to database
             _ = stock_repo.upsert(stock)
+
+            # Update stock_id and save stock_info
+            stock_info.stock_id = stock.id
+            stock_info_repo.insert(stock_info)
 
             # If symbol was corrected, store mapping
             if original_key != (new_symbol.upper(), new_exchange.upper()):
@@ -531,6 +540,7 @@ def create_orders_from_csv(
 def import_valid_orders(
     csv_path: Path,
     stock_repo: StockRepository,
+    stock_info_repo: StockInfoRepository,
     order_repo: OrderRepository,
     batch_size: int = 2,
     batch_delay: float = 15.0,
@@ -566,7 +576,13 @@ def import_valid_orders(
 
     # Validate new stocks and update database
     validated_stocks, stock_mapping = validate_and_save_stocks(
-        stocks_to_validate, stock_repo, existing_stocks, batch_size, batch_delay, interactive
+        stocks_to_validate,
+        stock_repo,
+        stock_info_repo,
+        existing_stocks,
+        batch_size,
+        batch_delay,
+        interactive,
     )
 
     # Create orders from CSV data
