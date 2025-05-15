@@ -405,13 +405,12 @@ def validate_and_save_stocks(
 
     # Process validation results
     for original_key, (new_symbol, new_exchange, ticker_obj) in validation_results.items():
-        if new_symbol and new_exchange and ticker_obj:
-            # Create stock object from ticker data
-            stock = yf_ticker_to_stock(ticker_obj)
-
-            if not stock:
-                logger.error(f"Failed to convert ticker to Stock object")
-                continue
+        if not (new_symbol and new_exchange and ticker_obj):
+            logger.error(
+                f"Missing value when processing validation results. Skipping."
+                + "new_symbol: {new_symbol}, new_exchange: {new_exchange}, ticker_obj: {ticker_obj}."
+            )
+            continue
             # Extract both models from a single ticker object
             stock, stock_info = TickerService.extract_models(ticker_obj)
 
