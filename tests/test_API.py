@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
-from stock_tracker.yfinance_api import get_stock_price
+from stock_tracker.yfinance_api import get_valid_ticker
 
 
 # # Mock the ticker

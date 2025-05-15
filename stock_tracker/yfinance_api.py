@@ -10,10 +10,19 @@ from stock_tracker.models import Stock
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def get_ticker(symbol: str, exchange: str | None = None, max_retries: int = 3) -> yf.Ticker | None:
+def get_valid_ticker(
+    symbol: str, exchange: str | None = None, max_retries: int = 3
+) -> yf.Ticker | None:
     """
-    Retrieves the latest stock price for a given symbol using the Alpha Vantage API.
-    Returns a tuple: (price: float or None, error: str or None).
+    Attempts to fetch a valid yfinance Ticker object with price data.
+
+    Args:
+        symbol: Stock symbol (e.g., "AAPL")
+        exchange: Exchange code (e.g., "NASDAQ", "AX"). Can be None or empty for US stocks.
+        max_retries: Maximum number of retry attempts for API calls
+
+    Returns:
+        A validated yf.Ticker object if successful, None otherwise
     """
     # TODO: Specify the currency, and convert it if necessary
     # TODO: Ensure can hangle stocks with the same ticker, that are listed in different exchanges
