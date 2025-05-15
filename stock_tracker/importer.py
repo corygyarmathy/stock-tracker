@@ -479,8 +479,8 @@ def import_valid_orders(
 
     for i in range(len(df)):
         row_data: dict[str, str] = df.iloc[i].to_dict()
-        symbol: str = row_data.get("ticker", "").strip()
-        exchange: str = row_data.get("exchange", "").strip()
+        symbol: str = row_data.get("ticker", "").strip().upper()
+        exchange: str = row_data.get("exchange", "").strip().upper()
         # Use common ticker mapping if known
         if symbol in common_tickers and not exchange:
             exchange = common_tickers[symbol]
