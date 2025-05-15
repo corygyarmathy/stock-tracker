@@ -23,7 +23,7 @@ def parse_csv_datetime(value: Any) -> datetime:
     if not isinstance(value, str):
         raise ValueError(f"Expected string for datetime, got {type(value)}")
     try:
-        # IMPORTANT: Ensure this format matches your CSV!
+        # NOTE: Ensure this format matches your CSV!
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
     except ValueError:
         raise ValueError(
