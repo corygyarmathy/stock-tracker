@@ -69,3 +69,13 @@ class StockPerformance:
     dividends_received: float
     total_return: float  # Capital gains + dividends
     total_return_percentage: float
+
+
+@dataclass
+class Dividend:
+    id: int | None
+    stock_id: int
+    ex_date: date
+    payment_date: date
+    amount: float
+    currency: str
