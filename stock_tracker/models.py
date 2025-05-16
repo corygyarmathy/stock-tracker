@@ -49,3 +49,23 @@ class FxRate:
     target_currency: str
     date: date
     rate: float
+
+
+@dataclass
+class StockPerformance:
+    """
+    Represents the performance metrics for a stock in the portfolio.
+    """
+
+    stock_id: int
+    ticker: str
+    exchange: str
+    name: str
+    total_shares: float
+    total_cost: float  # Total cost basis including fees
+    current_value: float
+    capital_gain: float
+    capital_gain_percentage: float
+    dividends_received: float
+    total_return: float  # Capital gains + dividends
+    total_return_percentage: float
