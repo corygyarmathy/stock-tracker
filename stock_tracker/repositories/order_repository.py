@@ -1,7 +1,10 @@
+import logging
 from sqlite3 import Cursor, Row
 from stock_tracker.db import Database
 from stock_tracker.models import StockOrder
 from stock_tracker.utils.model_utils import ModelFactory
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class OrderRepository:
