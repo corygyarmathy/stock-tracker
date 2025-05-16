@@ -13,7 +13,6 @@ from stock_tracker.repositories.fx_rate_repository import FxRateRepository
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
-from stock_tracker.services.dividend_service import DividendService
 from stock_tracker.services.portfolio_service import PortfolioService
 from stock_tracker.utils.setup_logging import setup_logging
 
@@ -48,21 +47,11 @@ def run_app(config: AppConfig, db: Database) -> None:
     dividend_repo: DividendRepository = DividendRepository(db)
 
     # Initialise services
-    dividend_service: DividendService = DividendService(dividend_repo)
     portfolio_service: PortfolioService = PortfolioService(
         stock_repo, order_repo, stock_info_repo, dividend_repo
     )
-    import_valid_orders(config.csv_path, stock_repo, stock_info_repo, order_repo)
 
-    # Fetch dividend data for all stocks in portfolio
-    logger.info("Fetching dividend data for stocks in portfolio...")
-    stocks = stock_repo.get_all()
-    for stock in stocks:
-        # Convert row to Stock model
-        if stock:
-            # Fetch and store dividends
-            dividends = dividend_service.fetch_and_store_dividends(stock)
-            logger.info(f"Found {len(dividends)} dividends for {stock.ticker}.{stock.exchange}")
+    import_valid_orders(config.csv_path, stock_repo, stock_info_repo, order_repo, dividend_repo)
 
     # Calculate portfolio performance
     logger.info("Calculating portfolio performance...")

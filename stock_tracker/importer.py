@@ -8,9 +8,11 @@ import pandas as pd
 import yfinance as yf
 
 from stock_tracker.models import Stock, StockOrder
+from stock_tracker.repositories.dividend_repository import DividendRepository
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
+from stock_tracker.services.dividend_service import DividendService
 from stock_tracker.services.ticker_service import TickerService
 from stock_tracker.yfinance_api import get_valid_ticker, search_ticker_quotes
 
@@ -549,6 +551,7 @@ def import_valid_orders(
     stock_repo: StockRepository,
     stock_info_repo: StockInfoRepository,
     order_repo: OrderRepository,
+    dividend_repo: DividendRepository,
     batch_size: int = 2,
     batch_delay: float = 15.0,
     interactive: bool = True,
@@ -560,6 +563,7 @@ def import_valid_orders(
         csv_path: Path to the CSV file containing orders
         stock_repo: Repository for stock data
         order_repo: Repository for order data
+        dividend_repo: Repository for dividend data
         batch_size: Number of tickers to validate in each batch
         batch_delay: Delay in seconds between batches
         interactive: Whether to prompt for user input when validation fails
@@ -594,3 +598,26 @@ def import_valid_orders(
 
     # Create orders from CSV data
     _ = create_orders_from_csv(df, validated_stocks, stock_mapping, order_repo)
+
+    # Fetch dividend data for new stocks
+    logger.info("Fetching initial dividend data for newly imported stocks...")
+    dividend_service = DividendService(dividend_repo)
+
+    # Only process stocks that weren't already in the database
+    new_stocks = {k: v for k, v in validated_stocks.items() if k not in existing_stocks}
+
+    if new_stocks:
+        for ticker_key, stock in new_stocks.items():
+            try:
+                if stock and stock.id:
+                    logger.info(
+                        f"Fetching dividends for new stock: {stock.ticker}.{stock.exchange}"
+                    )
+                    dividends = dividend_service.fetch_and_store_dividends(stock)
+                    logger.info(
+                        f"Found {len(dividends)} dividends for {stock.ticker}.{stock.exchange}"
+                    )
+            except Exception as e:
+                logger.error(f"Error fetching dividends for {stock.ticker}.{stock.exchange}: {e}")
+    else:
+        logger.info("No new stocks to fetch dividends for")
