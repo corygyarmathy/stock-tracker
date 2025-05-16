@@ -79,3 +79,19 @@ class Dividend:
     payment_date: date
     amount: float
     currency: str
+
+
+@dataclass
+class PortfolioPerformance:
+    """
+    Represents the aggregated performance of the entire portfolio.
+    """
+
+    stocks: list[StockPerformance]
+    total_cost: float
+    current_value: float
+    capital_gain: float
+    capital_gain_percentage: float
+    dividends_received: float
+    total_return: float
+    total_return_percentage: float
