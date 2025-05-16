@@ -83,7 +83,7 @@ class TickerService:
         # NOTE: stock_id will need to be set after the Stock is inserted
         return StockInfo(
             stock_id=-1,  # Temporary value, must be updated after Stock insert
-            last_updated=datetime.now(),
+            last_updated_datetime=datetime.now(),
             current_price=current_price,
             market_cap=market_cap,
             pe_ratio=pe_ratio,
