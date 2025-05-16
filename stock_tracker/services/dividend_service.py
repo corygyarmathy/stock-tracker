@@ -6,6 +6,7 @@ import pandas as pd
 
 from stock_tracker.models import Dividend, Stock
 from stock_tracker.repositories.dividend_repository import DividendRepository
+from stock_tracker.services.ticker_service import TickerService
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +34,17 @@ class DividendService:
 
         logger.info(f"Fetching dividend history for {stock.ticker}.{stock.exchange}")
 
-        # Construct yfinance ticker string
-        ticker_str = (
-            f"{stock.ticker}.{stock.exchange}"
-            if stock.exchange not in ["NASDAQ", "NYSE"]
-            else stock.ticker
-        )
+        ticker: yf.Ticker | None = TickerService.get_ticker_for_stock(stock)
+
+        if not ticker:
+            logger.error(f"Failed to get valid ticker for {stock.ticker}.{stock.exchange}")
+            return []
 
         try:
-            # Get ticker data from yfinance
-            ticker = yf.Ticker(ticker_str)
             dividends = ticker.dividends
 
             if dividends.empty:
-                logger.info(f"No dividend history found for {ticker_str}")
+                logger.info(f"No dividend history found for {ticker.ticker}")
                 return []
 
             # Process and store each dividend
@@ -79,11 +77,11 @@ class DividendService:
                 dividend.id = dividend_id
                 stored_dividends.append(dividend)
 
-            logger.info(f"Stored {len(stored_dividends)} dividends for {ticker_str}")
+            logger.info(f"Stored {len(stored_dividends)} dividends for {ticker.ticker}")
             return stored_dividends
 
         except Exception as e:
-            logger.error(f"Error fetching dividends for {ticker_str}: {e}")
+            logger.error(f"Error fetching dividends for {ticker.ticker}: {e}")
             return []
 
     def calculate_dividends_for_order(

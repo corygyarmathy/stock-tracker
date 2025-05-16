@@ -4,6 +4,7 @@ from datetime import datetime
 import yfinance as yf
 
 from stock_tracker.models import Stock, StockInfo
+from stock_tracker.yfinance_api import get_valid_ticker
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -91,3 +92,28 @@ class TickerService:
             pe_ratio=pe_ratio,
             dividend_yield=dividend_yield,
         )
+
+    @staticmethod
+    def get_ticker_for_stock(stock: Stock) -> yf.Ticker | None:
+        """
+        Get a yfinance Ticker object for a stock using its validated ticker string.
+
+        Args:
+            stock: Stock object with a validated yfinance_ticker
+
+        Returns:
+            yfinance Ticker object or None if validation fails
+        """
+        if not stock.yfinance_ticker:
+            # If we don't have a validated ticker string, try to validate
+            logger.debug(f"No yfinance_ticker str for stock {stock.ticker}")
+            ticker: yf.Ticker | None = get_valid_ticker(stock.ticker, stock.exchange)
+            if ticker:
+                # Update the stock with the validated ticker string for future use
+                stock.yfinance_ticker = ticker.ticker
+                return ticker
+            logger.error(f"Failed to obtain valid yfinance_ticker str for stock {stock.ticker}")
+            return None
+
+        # Use the validated ticker string we already have
+        return yf.Ticker(stock.yfinance_ticker)
