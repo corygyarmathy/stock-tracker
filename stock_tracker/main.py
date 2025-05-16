@@ -22,6 +22,26 @@ logger: logging.Logger = logging.getLogger(__name__)
 def main() -> None:
     # Construct AppConfig private singelton instance
     parser: ArgumentParser = ConfigLoader.build_arg_parser(AppConfig)
+
+    # Add subparsers for commands
+    subparsers = parser.add_subparsers(dest="command", help="Commands")
+
+    # Add refresh command
+    refresh_parser = subparsers.add_parser("refresh", help="Refresh stock data")
+    _ = refresh_parser.add_argument(
+        "--dividends", action="store_true", help="Refresh dividend data"
+    )
+    _ = refresh_parser.add_argument(
+        "--stock-info", action="store_true", help="Refresh stock information"
+    )
+    _ = refresh_parser.add_argument(
+        "--batch-size", type=int, default=5, help="Batch size for API calls"
+    )
+    _ = refresh_parser.add_argument(
+        "--delay", type=float, default=5.0, help="Delay between batches"
+    )
+    _ = refresh_parser.add_argument("--stock-id", type=int, help="Only refresh specific stock ID")
+
     args: Namespace = parser.parse_args()
     overrides: dict[str, Any] = ConfigLoader.args_to_overrides(args)
     config: AppConfig = ConfigLoader.load_app_config(overrides=overrides)
@@ -29,6 +49,28 @@ def main() -> None:
 
     # Set up app
     setup_logging(config.log_config_path, config.log_level)
+
+    # Handle commands
+    if hasattr(args, "command") and args.command == "refresh":
+        from stock_tracker.utils.refresh_data import refresh_dividends, refresh_stock_info
+
+        with Database(config.db_path) as db:
+            if args.dividends:
+                _ = refresh_dividends(
+                    config.db_path,
+                    batch_size=args.batch_size,
+                    delay_seconds=args.delay,
+                    single_stock_id=args.stock_id,
+                )
+
+            if args.stock_info:
+                _ = refresh_stock_info(
+                    config.db_path,
+                    batch_size=args.batch_size,
+                    delay_seconds=args.delay,
+                    single_stock_id=args.stock_id,
+                )
+        return
 
     # Run app with a single database connection
     with Database(config.db_path) as db:
