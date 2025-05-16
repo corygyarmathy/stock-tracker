@@ -7,6 +7,7 @@ from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
 from stock_tracker.importer import import_valid_orders
 from stock_tracker.repositories.corporate_actions_repository import CorporateActionRepository
+from stock_tracker.repositories.dividend_repository import DividendRepository
 from stock_tracker.repositories.fx_rate_repository import FxRateRepository
 from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_info_repository import StockInfoRepository
@@ -41,6 +42,7 @@ def run_app(config: AppConfig, db: Database) -> None:
     stock_info_repo: StockInfoRepository = StockInfoRepository(db)
     corp_action_repo: CorporateActionRepository = CorporateActionRepository(db)
     fx_rate_repo: FxRateRepository = FxRateRepository(db)
+    dividend_repo: DividendRepository = DividendRepository(db)
 
     import_valid_orders(config.csv_path, stock_repo, stock_info_repo, order_repo)
     # performance = calculate_portfolio_performance(db, session)
