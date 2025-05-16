@@ -23,8 +23,8 @@ def test_execute_single_query(app_config: AppConfig, test_db: Database):
     """Test executing a single SQL query."""
     # Insert a test stock
     _ = test_db.execute(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (?, ?, ?, ?)",
-        ("AAPL", "NASDAQ", "USD", "Apple Inc."),
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (?, ?, ?, ?, ?)",
+        ("AAPL", "NASDAQ", "USD", "Apple Inc.", "AAPL"),
     )
 
     # Verify the stock was inserted correctly
@@ -41,12 +41,13 @@ def test_execute_with_named_params(app_config: AppConfig, test_db: Database):
     """Test executing a SQL query with named parameters."""
     # Insert a test stock using named parameters
     _ = test_db.execute(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (:ticker, :exchange, :currency, :name)",
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (:ticker, :exchange, :currency, :name, :yfinance_ticker)",
         {
             "ticker": "MSFT",
             "exchange": "NASDAQ",
             "currency": "USD",
             "name": "Microsoft Corporation",
+            "yfinance_ticker": "MSFT",
         },
     )
 
@@ -87,14 +88,15 @@ def test_executemany(app_config: AppConfig, test_db: Database):
     """Test bulk insert with executemany."""
     # Prepare test data for bulk insert
     stocks = [
-        ("GOOG", "NASDAQ", "USD", "Alphabet Inc."),
-        ("AMZN", "NASDAQ", "USD", "Amazon.com Inc."),
-        ("TSLA", "NASDAQ", "USD", "Tesla, Inc."),
+        ("GOOG", "NASDAQ", "USD", "Alphabet Inc.", "GOOG"),
+        ("AMZN", "NASDAQ", "USD", "Amazon.com Inc.", "AMZN"),
+        ("TSLA", "NASDAQ", "USD", "Tesla, Inc.", "TSLA"),
     ]
 
     # Execute bulk insert
     _ = test_db.executemany(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (?, ?, ?, ?)", stocks
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (?, ?, ?, ?, ?)",
+        stocks,
     )
 
     # Verify all stocks were inserted
@@ -113,13 +115,25 @@ def test_executemany_with_named_params(app_config: AppConfig, test_db: Database)
     """Test bulk insert with executemany using named parameters."""
     # Prepare test data with named parameters
     stocks: list[dict[str, str]] = [
-        {"ticker": "FB", "exchange": "NASDAQ", "currency": "USD", "name": "Meta Platforms Inc."},
-        {"ticker": "NFLX", "exchange": "NASDAQ", "currency": "USD", "name": "Netflix Inc."},
+        {
+            "ticker": "FB",
+            "exchange": "NASDAQ",
+            "currency": "USD",
+            "name": "Meta Platforms Inc.",
+            "yfinance_ticker": "FB",
+        },
+        {
+            "ticker": "NFLX",
+            "exchange": "NASDAQ",
+            "currency": "USD",
+            "name": "Netflix Inc.",
+            "yfinance_ticker": "NFLX",
+        },
     ]
 
     # Execute bulk insert with named parameters
     _ = test_db.executemany(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (:ticker, :exchange, :currency, :name)",
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (:ticker, :exchange, :currency, :name, :yfinance_ticker)",
         stocks,
     )
 
@@ -155,12 +169,12 @@ def test_fetch_methods(app_config: AppConfig, test_db: Database):
     """Test the fetch methods (fetchone, fetchall)."""
     # Insert test data
     _ = test_db.execute(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (?, ?, ?, ?)",
-        ("JPM", "NYSE", "USD", "JPMorgan Chase & Co."),
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (?, ?, ?, ?, ?)",
+        ("JPM", "NYSE", "USD", "JPMorgan Chase & Co.", "JPM"),
     )
     _ = test_db.execute(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (?, ?, ?, ?)",
-        ("GS", "NYSE", "USD", "Goldman Sachs Group Inc."),
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (?, ?, ?, ?, ?)",
+        ("GS", "NYSE", "USD", "Goldman Sachs Group Inc.", "GS"),
     )
 
     # Test fetchone
@@ -181,12 +195,12 @@ def test_query_convenience_methods(app_config: AppConfig, test_db: Database):
     """Test the query_one and query_all convenience methods."""
     # Insert test data
     _ = test_db.execute(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (?, ?, ?, ?)",
-        ("INTC", "NASDAQ", "USD", "Intel Corporation"),
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (?, ?, ?, ?, ?)",
+        ("INTC", "NASDAQ", "USD", "Intel Corporation", "INTC"),
     )
     _ = test_db.execute(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (?, ?, ?, ?)",
-        ("AMD", "NASDAQ", "USD", "Advanced Micro Devices, Inc."),
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (?, ?, ?, ?, ?)",
+        ("AMD", "NASDAQ", "USD", "Advanced Micro Devices, Inc.", "AMD"),
     )
 
     # Test query_one
@@ -298,8 +312,8 @@ def test_complex_query_with_joins(app_config: AppConfig, test_db: Database):
     """Test more complex queries with joins between tables."""
     # Insert a stock
     _ = test_db.execute(
-        "INSERT INTO stocks (ticker, exchange, currency, name) VALUES (?, ?, ?, ?)",
-        ("VTI", "NYSE", "USD", "Vanguard Total Stock Market ETF"),
+        "INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker) VALUES (?, ?, ?, ?, ?)",
+        ("VTI", "NYSE", "USD", "Vanguard Total Stock Market ETF", "VTI"),
     )
 
     # Get the stock_id

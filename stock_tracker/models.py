@@ -10,6 +10,7 @@ class Stock:
     exchange: str
     currency: str
     name: str | None = None
+    yfinance_ticker: str | None = None
 
 
 @dataclass

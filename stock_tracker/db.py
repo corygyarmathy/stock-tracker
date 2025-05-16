@@ -192,6 +192,7 @@ class Database:
             exchange TEXT NOT NULL,
             currency TEXT NOT NULL,
             name TEXT,
+            yfinance_ticker TEXT NOT NULL,
             UNIQUE(ticker, exchange)
         );
         """)

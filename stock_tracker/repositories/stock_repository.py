@@ -15,14 +15,15 @@ class StockRepository:
     def insert(self, stock: Stock) -> int:
         cursor = self.db.execute(
             """
-            INSERT INTO stocks (ticker, exchange, currency, name)
-            VALUES (:ticker, :exchange, :currency, :name)
+            INSERT INTO stocks (ticker, exchange, currency, name, yfinance_ticker)
+            VALUES (:ticker, :exchange, :currency, :name, :yfinance_ticker)
             """,
             {
                 "ticker": stock.ticker,
                 "exchange": stock.exchange,
                 "currency": stock.currency,
                 "name": stock.name,
+                "yfinance_ticker": stock.yfinance_ticker,
             },
         )
         stock.id = cursor.lastrowid

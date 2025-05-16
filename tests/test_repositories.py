@@ -14,7 +14,12 @@ from stock_tracker.repositories.stock_repository import StockRepository
 @pytest.fixture()
 def stock_obj(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
     stock: Stock = Stock(
-        id=None, ticker="MSFT", exchange="NASDAQ", currency="USD", name="Microsoft Corp"
+        id=None,
+        ticker="MSFT",
+        exchange="NASDAQ",
+        currency="USD",
+        name="Microsoft Corp",
+        yfinance_ticker="MSFT",
     )
     stock.id = stock_repo.insert(stock)  # Store stock ID
     return stock
@@ -23,7 +28,12 @@ def stock_obj(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
 @pytest.fixture()
 def stock_obj_2(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
     stock: Stock = Stock(
-        id=None, ticker="AAPL", exchange="NASDAQ", currency="USD", name="Apple Corp"
+        id=None,
+        ticker="AAPL",
+        exchange="NASDAQ",
+        currency="USD",
+        name="Apple Corp",
+        yfinance_ticker="AAPL",
     )
     stock.id = stock_repo.insert(stock)  # Store stock ID
     return stock
@@ -32,7 +42,12 @@ def stock_obj_2(app_config: AppConfig, stock_repo: StockRepository) -> Stock:
 class TestStockRepository:
     def test_insert_and_get(self, app_config: AppConfig, stock_repo: StockRepository):
         stock: Stock = Stock(
-            id=None, ticker="AAPL", exchange="NASDAQ", currency="USD", name="Apple Inc."
+            id=None,
+            ticker="AAPL",
+            exchange="NASDAQ",
+            currency="USD",
+            name="Apple Inc.",
+            yfinance_ticker="AAPL",
         )
         stock_id: int = stock_repo.insert(stock)
         assert isinstance(stock_id, int)
@@ -46,19 +61,19 @@ class TestStockRepository:
         fetched2: Stock | None = stock_repo.get_by_ticker_exchange("AAPL", "NASDAQ")
         assert fetched2 == stock
 
-    def test_upsert_new_and_existing(self, app_config: AppConfig, stock_repo: StockRepository):
-        stock: Stock = Stock(
-            id=None, ticker="GOOG", exchange="NASDAQ", currency="USD", name="Google LLC"
-        )
-        first_id: int = stock_repo.upsert(stock)
-        assert first_id == stock.id
+    def test_upsert_new_and_existing(
+        self,
+        app_config: AppConfig,
+        stock_repo: StockRepository,
+        stock_obj: Stock,
+        stock_obj_2: Stock,
+    ):
+        first_id: int = stock_repo.upsert(stock_obj)
+        assert first_id == stock_obj.id
 
-        stock2: Stock = Stock(
-            id=None, ticker="GOOG", exchange="NASDAQ", currency="USD", name="Google LLC"
-        )
-        second_id: int = stock_repo.upsert(stock2)
+        second_id: int = stock_repo.upsert(stock_obj)
         assert second_id == first_id
-        assert stock2.id == first_id
+        assert stock_obj.id == first_id
 
 
 class TestOrderRepository:

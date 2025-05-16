@@ -36,6 +36,7 @@ class TickerService:
     def extract_stock(ticker: yf.Ticker) -> Stock:
         """Extract Stock model from yfinance.Ticker."""
         info = ticker.info
+        ticker_str: str = str(ticker.ticker)
 
         symbol = info.get("symbol")
         exchange = info.get("exchange")
@@ -63,6 +64,7 @@ class TickerService:
             exchange=exchange,
             currency=currency.upper(),
             name=name,
+            yfinance_ticker=ticker_str,
         )
 
     @staticmethod
