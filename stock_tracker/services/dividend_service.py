@@ -68,7 +68,6 @@ class DividendService:
                 # Check if this dividend already exists
                 existing = self.dividend_repo.get_dividend_by_ex_date(stock.id, ex_date)
                 if existing:
-                    logger.debug(f"Dividend already exists for {ticker_str} on {ex_date}")
                     stored_dividends.append(existing)
                     continue
 
