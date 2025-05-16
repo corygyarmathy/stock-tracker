@@ -243,4 +243,17 @@ class Database:
             PRIMARY KEY(base_currency, target_currency, date)
         );
         """)
+        # Dividend history for stocks
+        _ = self.execute("""
+        CREATE TABLE IF NOT EXISTS dividend_history (
+            id INTEGER PRIMARY KEY,
+            stock_id INTEGER NOT NULL,
+            ex_date TEXT NOT NULL,      -- Date when buying the stock no longer qualifies for this dividend
+            payment_date TEXT NOT NULL, -- Date when the dividend is actually paid
+            amount REAL NOT NULL,       -- Amount per share
+            currency TEXT NOT NULL,     -- Currency of the dividend
+            FOREIGN KEY(stock_id) REFERENCES stocks(id),
+            UNIQUE(stock_id, ex_date)   -- A stock can only have one dividend with the same ex-date
+        );
+        """)
         # TODO: investigate adding indexes
