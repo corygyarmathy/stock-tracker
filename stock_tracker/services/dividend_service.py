@@ -15,7 +15,7 @@ class DividendService:
     """Service for fetching, updating, and managing dividend data."""
 
     def __init__(self, dividend_repository: DividendRepository):
-        self.dividend_repo = dividend_repository
+        self.dividend_repo: DividendRepository = dividend_repository
 
     def fetch_and_store_dividends(self, stock: Stock) -> list[Dividend]:
         """
