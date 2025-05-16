@@ -355,7 +355,7 @@ def test_complex_query_with_joins(app_config: AppConfig, test_db: Database):
             "stock_info",
             [
                 "stock_id",
-                "last_updated",
+                "last_updated_datetime",
                 "current_price",
                 "market_cap",
                 "pe_ratio",

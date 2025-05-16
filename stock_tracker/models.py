@@ -26,7 +26,7 @@ class StockOrder:
 @dataclass
 class StockInfo:
     stock_id: int
-    last_updated: datetime
+    last_updated_datetime: datetime
     current_price: float
     market_cap: float
     pe_ratio: float

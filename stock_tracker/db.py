@@ -212,7 +212,7 @@ class Database:
         _ = self.execute("""
         CREATE TABLE IF NOT EXISTS stock_info (
             stock_id INTEGER PRIMARY KEY,
-            last_updated TEXT NOT NULL,
+            last_updated_datetime TEXT NOT NULL,
             current_price REAL,
             market_cap REAL,
             pe_ratio REAL,

@@ -122,7 +122,7 @@ class TestStockInfoRepository:
             raise ValueError("stock_id has not been properly initialised.")
         stock_info: StockInfo = StockInfo(
             stock_id=stock_obj.id,
-            last_updated=datetime(2025, 1, 1, 9, 30),
+            last_updated_datetime=datetime(2025, 1, 1, 9, 30),
             current_price=200.0,
             market_cap=5000.0,
             pe_ratio=35.0,
@@ -143,7 +143,7 @@ class TestStockInfoRepository:
         # Create initial stock info
         initial_stock_info: StockInfo = StockInfo(
             stock_id=stock_obj.id,
-            last_updated=datetime(2025, 1, 1, 9, 30),
+            last_updated_datetime=datetime(2025, 1, 1, 9, 30),
             current_price=200.0,
             market_cap=5000.0,
             pe_ratio=35.0,
@@ -161,7 +161,7 @@ class TestStockInfoRepository:
         # Create updated stock info
         updated_stock_info: StockInfo = StockInfo(
             stock_id=stock_obj.id,
-            last_updated=datetime(2025, 1, 2, 10, 0),
+            last_updated_datetime=datetime(2025, 1, 2, 10, 0),
             current_price=210.0,  # Changed price
             market_cap=5200.0,  # Changed market cap
             pe_ratio=36.0,  # Changed PE ratio
@@ -178,7 +178,7 @@ class TestStockInfoRepository:
         assert fetched_updated_info.market_cap == 5200.0
         assert fetched_updated_info.pe_ratio == 36.0
         assert fetched_updated_info.dividend_yield == 0.36
-        assert fetched_updated_info.last_updated == datetime(2025, 1, 2, 10, 0)
+        assert fetched_updated_info.last_updated_datetime == datetime(2025, 1, 2, 10, 0)
 
 
 class TestCorporateActionRepository:

@@ -1,5 +1,6 @@
 import logging
 from sqlite3 import Row
+
 from stock_tracker.db import Database
 from stock_tracker.models import StockInfo
 from stock_tracker.utils.model_utils import ModelFactory
@@ -14,12 +15,12 @@ class StockInfoRepository:
     def insert(self, stock_info: StockInfo) -> None:
         _ = self.db.execute(
             """
-            INSERT INTO stock_info (stock_id, last_updated, current_price, market_cap, pe_ratio, dividend_yield)
-            VALUES (:stock_id, :last_updated, :current_price, :market_cap, :pe_ratio, :dividend_yield)
+            INSERT INTO stock_info (stock_id, last_updated_datetime, current_price, market_cap, pe_ratio, dividend_yield)
+            VALUES (:stock_id, :last_updated_datetime, :current_price, :market_cap, :pe_ratio, :dividend_yield)
             """,
             {
                 "stock_id": stock_info.stock_id,
-                "last_updated": stock_info.last_updated,
+                "last_updated_datetime": stock_info.last_updated_datetime,
                 "current_price": stock_info.current_price,
                 "market_cap": stock_info.market_cap,
                 "pe_ratio": stock_info.pe_ratio,
@@ -33,7 +34,7 @@ class StockInfoRepository:
         _ = self.db.execute(
             """
             UPDATE stock_info
-            SET last_updated = :last_updated,
+            SET last_updated_datetime = :last_updated_datetime,
                 current_price = :current_price,
                 market_cap = :market_cap,
                 pe_ratio = :pe_ratio,
@@ -42,7 +43,7 @@ class StockInfoRepository:
             """,
             {
                 "stock_id": stock_info.stock_id,
-                "last_updated": stock_info.last_updated,
+                "last_updated_datetime": stock_info.last_updated_datetime,
                 "current_price": stock_info.current_price,
                 "market_cap": stock_info.market_cap,
                 "pe_ratio": stock_info.pe_ratio,
