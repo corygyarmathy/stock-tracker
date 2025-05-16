@@ -13,6 +13,7 @@ from stock_tracker.repositories.order_repository import OrderRepository
 from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
 from stock_tracker.services.dividend_service import DividendService
+from stock_tracker.services.portfolio_service import PortfolioService
 from stock_tracker.utils.setup_logging import setup_logging
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -47,9 +48,14 @@ def run_app(config: AppConfig, db: Database) -> None:
 
     # Initialise services
     dividend_service: DividendService = DividendService(dividend_repo)
+    portfolio_service: PortfolioService = PortfolioService(
+        stock_repo, order_repo, stock_info_repo, dividend_repo
+    )
     import_valid_orders(config.csv_path, stock_repo, stock_info_repo, order_repo)
-    # performance = calculate_portfolio_performance(db, session)
 
+    # Calculate portfolio performance
+    logger.info("Calculating portfolio performance...")
+    performance = portfolio_service.calculate_portfolio_performance()
     # Display results
     # display_performance(performance)
 
