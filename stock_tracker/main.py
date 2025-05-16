@@ -53,6 +53,16 @@ def run_app(config: AppConfig, db: Database) -> None:
     )
     import_valid_orders(config.csv_path, stock_repo, stock_info_repo, order_repo)
 
+    # Fetch dividend data for all stocks in portfolio
+    logger.info("Fetching dividend data for stocks in portfolio...")
+    stocks = stock_repo.get_all()
+    for stock in stocks:
+        # Convert row to Stock model
+        if stock:
+            # Fetch and store dividends
+            dividends = dividend_service.fetch_and_store_dividends(stock)
+            logger.info(f"Found {len(dividends)} dividends for {stock.ticker}.{stock.exchange}")
+
     # Calculate portfolio performance
     logger.info("Calculating portfolio performance...")
     performance = portfolio_service.calculate_portfolio_performance()
