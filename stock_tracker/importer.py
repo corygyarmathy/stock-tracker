@@ -416,12 +416,14 @@ def validate_and_save_stocks(
             stock, stock_info = TickerService.extract_models(ticker_obj)
 
             # Save stock to database
+            logger.debug(f"Saving stock {stock.name} to database.")
             _ = stock_repo.upsert(stock)
 
             # Update stock_id and save stock_info
             if not stock.id:
                 raise ValueError(f"Missing id for {stock.name}")
             stock_info.stock_id = stock.id
+            logger.debug(f"Saving stock info for {stock.name} to database.")
             stock_info_repo.upsert(stock_info)
 
             # If symbol was corrected, store mapping
