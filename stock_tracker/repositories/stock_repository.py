@@ -53,6 +53,34 @@ class StockRepository:
             return None
         return ModelFactory.create_from_row(Stock, row)
 
+    def get_by_ids(self, stock_ids: list[int]) -> dict[int, Stock]:
+        """
+        Retrieve multiple stocks by their IDs in a single query.
+
+        Args:
+            stock_ids: List of stock IDs to retrieve
+
+        Returns:
+            Dictionary mapping stock IDs to Stock objects
+        """
+        # Convert list to comma-separated string for SQL IN clause
+        id_str = ",".join("?" for _ in stock_ids)
+
+        rows = self.db.query_all(f"SELECT * FROM stocks WHERE id IN ({id_str})", stock_ids)
+
+        # Create a dictionary mapping ID to Stock object
+        return {row["id"]: ModelFactory.create_from_row(Stock, row) for row in rows}
+
+    def get_all(self) -> list[Stock]:
+        """
+        Retrieve all stocks from the database.
+
+        Returns:
+            List of all Stock objects
+        """
+        rows: list[Row] = self.db.query_all("SELECT * FROM stocks")
+        return ModelFactory.create_list_from_rows(Stock, rows)
+
     def upsert(self, stock: Stock) -> int:
         """
         Inserts a stock if it doesn't exist, or fetches its ID if it already exists.
