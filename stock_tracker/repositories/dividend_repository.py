@@ -30,9 +30,12 @@ class DividendRepository:
 
         dividend.id = cursor.lastrowid
         if dividend.id:
-            logger.info(f"Inserted dividend for stock ID {dividend.stock_id} on {dividend.ex_date}")
+            logger.debug(
+                f"Inserted dividend for stock ID {dividend.stock_id} on {dividend.ex_date}"
+            )
             return dividend.id
         else:
+            logger.error(f"Failed to obtain id of dividend after inserting into db.")
             raise ValueError(f"Failed to obtain id of dividend after inserting into db.")
 
     def get_dividends_for_stock(self, stock_id: int) -> list[Dividend]:
