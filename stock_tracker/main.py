@@ -5,6 +5,7 @@ from typing import Any
 
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.db import Database
+from stock_tracker.display import display_performance
 from stock_tracker.importer import import_valid_orders
 from stock_tracker.repositories.corporate_actions_repository import CorporateActionRepository
 from stock_tracker.repositories.dividend_repository import DividendRepository
@@ -67,7 +68,6 @@ def run_app(config: AppConfig, db: Database) -> None:
     logger.info("Calculating portfolio performance...")
     performance = portfolio_service.calculate_portfolio_performance()
     # Display results
-    # display_performance(performance)
 
 
 # INFO: yf.Ticker("IVV")
@@ -95,6 +95,8 @@ def run_app(config: AppConfig, db: Database) -> None:
 # year_change float = 0.08368848865194049
 # year_high float = 65.2699966430664
 # year_low float = 51.369998931884766
+    # Display results
+    display_performance(performance)
 
 
 if __name__ == "__main__":
