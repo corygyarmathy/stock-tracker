@@ -93,39 +93,13 @@ def run_app(config: AppConfig, db: Database) -> None:
         stock_repo, order_repo, stock_info_repo, dividend_repo
     )
 
+    # Import orders if needed
     import_valid_orders(config.csv_path, stock_repo, stock_info_repo, order_repo, dividend_repo)
 
     # Calculate portfolio performance
     logger.info("Calculating portfolio performance...")
     performance = portfolio_service.calculate_portfolio_performance()
-    # Display results
 
-
-# INFO: yf.Ticker("IVV")
-# ticker str = 'IVV'
-
-# INFO: yf.Ticker.fast_info Example ("IVV.AX")
-# currency str = 'AUD'
-# day_high float = 55.939998626708984
-# day_low float = 55.119998931884766
-# exchange str = 'ASX'
-# fifty_day_average float = 60.607799987792966
-# last_price float = 55.939998626708984
-# last_volume int = 441315
-# market_cap NoneType = None
-# open float = 55.189998626708984
-# previous_close float = 55.79999923706055
-# proxy NoneType = None
-# quote_type str = 'ETF'
-# regular_market_previous_close float = 55.79999923706055
-# shares NoneType = None
-# ten_day_average_volume int = 1779005
-# three_month_average_volume int = 596180
-# timezone str = 'Australia/Sydney'
-# two_hundred_day_average float = 59.271899967193605
-# year_change float = 0.08368848865194049
-# year_high float = 65.2699966430664
-# year_low float = 51.369998931884766
     # Display results
     display_performance(performance)
 
