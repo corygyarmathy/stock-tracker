@@ -14,7 +14,6 @@ from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
 from stock_tracker.services.dividend_service import DividendService
 from stock_tracker.services.ticker_service import TickerService
-from stock_tracker.yfinance_api import get_valid_ticker, search_ticker_quotes
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -87,7 +86,7 @@ def validate_ticker_with_fallback(
     # First, try with the provided symbol and exchange
     full_symbol: str = f"{symbol}.{exchange}" if exchange else symbol
     logger.info(f"Attempting to validate ticker {full_symbol}")
-    ticker: yf.Ticker | None = get_valid_ticker(symbol, exchange)
+    ticker: yf.Ticker | None = TickerService.get_valid_ticker(symbol, exchange)
 
     if ticker:
         logger.info(f"Successfully validated ticker: {full_symbol}")
@@ -98,7 +97,7 @@ def validate_ticker_with_fallback(
         logger.warning(f"Failed to validate ticker: {full_symbol}. Searching for alternatives...")
 
         # Search using just the symbol as query
-        search_results = search_ticker_quotes(symbol)
+        search_results = TickerService.search_ticker_quotes(symbol)
 
         if search_results:
             logger.info(f"Found alternatives for {full_symbol}")
@@ -115,7 +114,7 @@ def validate_ticker_with_fallback(
                     logger.info(f"User selected alternative: {new_symbol}.{new_exchange}")
 
                     # Validate the selected ticker
-                    new_ticker = get_valid_ticker(new_symbol, new_exchange)
+                    new_ticker = TickerService.get_valid_ticker(new_symbol, new_exchange)
                     if new_ticker:
                         return new_symbol, new_exchange, new_ticker
                     else:
@@ -164,7 +163,7 @@ def batch_validate_with_fallback(
             )
 
             # Try validation without custom session
-            ticker_obj: yf.Ticker | None = get_valid_ticker(symbol, exchange)
+            ticker_obj: yf.Ticker | None = TickerService.get_valid_ticker(symbol, exchange)
 
             if ticker_obj:
                 # Successfully validated
