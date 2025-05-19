@@ -8,17 +8,17 @@ requires-python = ">=3.10"
 
 # Runtime dependencies
 dependencies = [
-  "yfinance",
-  "requests",
-  "requests-cache",
-  "requests-ratelimiter",
-  "pyrate-limiter",
+  "pytest",
+  "pytest-mock",
   "python-dotenv",
+  "yfinance",
+  "pyyaml",
   "pandas",
+  "pandas-stubs",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-mock", "responses", "ruff", "pyright"]
+dev = ["pytest", "pytest-mock", "ruff", "pyright"]
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

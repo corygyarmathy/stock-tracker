@@ -49,19 +49,12 @@
         # Define the list of Python packages, getting most from unstable
         pythonPackagesList = with unstablePkgs.python3Packages; [
           pytest
+          pytest-mock
           python-dotenv
           yfinance
-          requests
-          requests-cache
-          responses
-          termgraph
-          pytest-mock
+          pyyaml
           pandas
           pandas-stubs
-
-          pip
-          setuptools
-          wheel
         ];
 
         # Combine the unstable packages list with the single pinned package
