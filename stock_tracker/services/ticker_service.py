@@ -213,7 +213,7 @@ class TickerService:
         Search for ticker symbols in Yahoo Finance with retry mechanism.
         Uses yfinance's built-in session management.
         """
-        retry_count = 0
+        retry_count: int = 0
 
         while retry_count <= max_retries:
             try:
