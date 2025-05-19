@@ -20,6 +20,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "pytest-mock", "ruff", "pyright"]
 
+[project.scripts]
+stock-tracker = "stock_tracker.main:main"
+
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
