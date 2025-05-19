@@ -32,7 +32,7 @@ class ReportCommand(Command):
         """Configure the argument parser for the report command."""
         parser: argparse.ArgumentParser = subparser.add_parser(cls.name, help=cls.help)
         _ = parser.add_argument(
-            "type", choices=["performance", "dividends", "gains"], help="Type of report to generate"
+            "type", choices=["performance", "dividends"], help="Type of report to generate"
         )
 
     @override
@@ -57,12 +57,6 @@ class ReportCommand(Command):
                 print("Generating dividend report...")
                 dividend_data = portfolio_service.calculate_dividend_report()
                 display_dividend_report(dividend_data)
-
-            # Capital gains report
-            elif report_type == "gains":
-                print("Generating capital gains report...")
-                # TODO: Implement capital gains report
-                print("Capital gains report not yet implemented.")
 
             return 0
         except Exception as e:
