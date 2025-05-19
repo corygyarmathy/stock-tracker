@@ -66,7 +66,9 @@ class DividendService:
                 )
 
                 # Check if this dividend already exists
-                existing = self.dividend_repo.get_dividend_by_ex_date(stock.id, ex_date)
+                existing: Dividend | None = self.dividend_repo.get_dividend_by_ex_date(
+                    stock.id, ex_date
+                )
                 if existing:
                     stored_dividends.append(existing)
                     continue
