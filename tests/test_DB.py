@@ -218,6 +218,8 @@ def test_query_convenience_methods(app_config: AppConfig, test_db: Database):
     assert "INTC" in tickers
 
 
+# TODO: make these integration tests with the isolated env.
+#
 # def test_context_manager(app_config: AppConfig):
 #     """Test the context manager functionality (commit on success)."""
 #     db_path = app_config.db_path

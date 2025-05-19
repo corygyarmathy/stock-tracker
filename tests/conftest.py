@@ -45,6 +45,8 @@ def reset_app_config():
         AppConfig._reset()
 
 
+# TODO: investigate inverting this into every test, rather than manually adding it
+# Seems to be required for every unit test anyway... see what the ramifications might be
 @pytest.fixture
 def app_config() -> AppConfig:
     """
