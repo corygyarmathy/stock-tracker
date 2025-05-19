@@ -1,4 +1,5 @@
 from stock_tracker.models import (
+    Dividend,
     PortfolioPerformance,
     Stock,
     StockInfo,
@@ -75,6 +76,42 @@ class PortfolioService:
             total_return=total_return,
             total_return_percentage=total_return_percentage,
         )
+
+    def calculate_dividend_report(self) -> list[dict[str, str | int | float]]:
+        """Calculate dividend report data for all stocks.
+
+        Returns:
+            A list of dictionaries containing dividend report data for each stock
+        """
+        dividend_data = []
+
+        # Get all stocks
+        all_stocks: list[Stock] = self.stock_repo.get_all()
+
+        for stock in all_stocks:
+            if not stock.id:
+                continue
+
+            # Get dividends for this stock
+            dividends: list[Dividend] = self.dividend_repo.get_dividends_for_stock(stock.id)
+            if not dividends:
+                continue
+
+            # Calculate total dividends and find the most recent ex-date
+            stock_total = sum(d.amount for d in dividends)
+            last_date = max(d.ex_date for d in dividends)
+
+            # Add stock's dividend data to the report
+            dividend_data.append(
+                {
+                    "stock": stock,
+                    "total_amount": stock_total,
+                    "last_ex_date": last_date,
+                    "dividends_count": len(dividends),
+                }
+            )
+
+        return dividend_data
 
     def _calculate_stock_performance(
         self, stock: Stock, orders: list[StockOrder], stock_info: StockInfo
