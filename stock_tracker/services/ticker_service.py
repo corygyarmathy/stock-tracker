@@ -14,8 +14,6 @@ logger: logging.Logger = logging.getLogger(__name__)
 class TickerService:
     """Service for extracting domain models from yfinance.Ticker objects."""
 
-    # TODO: expand this to extract the remaining models.
-    # Will implement this as needed: don't want to over-complicate now.
     @staticmethod
     def extract_models(ticker: yf.Ticker) -> tuple[Stock, StockInfo]:
         """
