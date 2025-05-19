@@ -4,14 +4,19 @@ import argparse
 import logging
 from typing import override
 
+from yfinance import Ticker
+
 from stock_tracker.commands.base import Command, CommandRegistry
 from stock_tracker.config import AppConfig
 from stock_tracker.container import ServiceContainer
 from stock_tracker.db import Database
-from stock_tracker.models import Dividend, Stock
+from stock_tracker.models import CorporateAction, Dividend, Stock, StockInfo
+from stock_tracker.repositories.corporate_actions_repository import CorporateActionRepository
 from stock_tracker.repositories.dividend_repository import DividendRepository
+from stock_tracker.repositories.stock_info_repository import StockInfoRepository
 from stock_tracker.repositories.stock_repository import StockRepository
 from stock_tracker.services.dividend_service import DividendService
+from stock_tracker.services.ticker_service import TickerService
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +48,17 @@ class RefreshCommand(Command):
     def execute(self, args: argparse.Namespace) -> int:
         """Execute the refresh command."""
         refresh_type = args.type
-        stock_id = getattr(args, "stock_id", None)
+        stock_id: int | None = getattr(args, "stock_id", None)
         if stock_id:
             stock_id = int(stock_id)
-        else:
-            raise ValueError("Attr 'stock_id' returned None.")
 
         # Get repositories and services from the container
         stock_repo: StockRepository = self.container.get_repository(StockRepository)
+        stock_info_repo: StockInfoRepository = self.container.get_repository(StockInfoRepository)
         dividend_repo: DividendRepository = self.container.get_repository(DividendRepository)
+        corp_action_repo: CorporateActionRepository = self.container.get_repository(
+            CorporateActionRepository
+        )
         dividend_service: DividendService = self.container.get_service(DividendService)
 
         # Refresh dividends
@@ -59,12 +66,18 @@ class RefreshCommand(Command):
             return self._refresh_dividends(dividend_service, stock_repo, dividend_repo, stock_id)
 
         # Refresh stock prices
+        print("check if refresh price")
         if refresh_type in ["prices", "all"]:
-            return self._refresh_prices(stock_id)
+            print("REFRESH PRICE")
+            return self._refresh_prices(
+                stock_repo=stock_repo, stock_info_repo=stock_info_repo, stock_id=stock_id
+            )
 
         # Refresh splits
         if refresh_type in ["splits", "all"]:
-            return self._refresh_splits(stock_id)
+            return self._refresh_splits(
+                stock_repo=stock_repo, corp_action_repo=corp_action_repo, stock_id=stock_id
+            )
 
         return 0
 
@@ -115,16 +128,189 @@ class RefreshCommand(Command):
         print(f"Dividend refresh complete. Added {total_dividends} new dividend records.")
         return 0
 
-    def _refresh_prices(self, stock_id: int | None = None) -> int:
+    def _refresh_prices(
+        self,
+        stock_repo: StockRepository,
+        stock_info_repo: StockInfoRepository,
+        stock_id: int | None = None,
+    ) -> int:
         """Refresh stock price data."""
         print("Refreshing stock prices...")
-        # TODO: implement refreshing stock price using container services
-        print("Price refresh not yet implemented.")
+
+        # Get stocks to refresh
+        if stock_id:
+            stock: Stock | None = stock_repo.get_by_id(stock_id)
+            if not stock:
+                logger.error(f"Stock with ID {stock_id} not found")
+                print(f"Error: Stock with ID {stock_id} not found")
+                return 1
+            stocks: list[Stock] = [stock]
+            logger.info(f"Refreshing price data for single stock ID: {stock_id}")
+        else:
+            stocks = stock_repo.get_all()
+            logger.info(f"Refreshing price data for all {len(stocks)} stocks")
+
+        # Process stocks in batches to respect API limits
+        batch_size = 5
+        total_updated = 0
+
+        for i in range(0, len(stocks), batch_size):
+            batch: list[Stock] = stocks[i : i + batch_size]
+            batch_num: int = i // batch_size + 1
+            total_batches: int = (len(stocks) - 1) // batch_size + 1
+
+            print(f"Processing batch {batch_num}/{total_batches} ({len(batch)} stocks)...")
+
+            for stock in batch:
+                if not stock.id:
+                    logger.warning(f"Skipping stock without ID: {stock.ticker}.{stock.exchange}")
+                    continue
+
+                print(f"Refreshing price data for {stock.ticker}.{stock.exchange}...", end="")
+                try:
+                    ticker: Ticker | None = TickerService.get_ticker_for_stock(stock)
+
+                    if not ticker:
+                        print(" failed (invalid ticker)")
+                        logger.error(
+                            f"Failed to get valid ticker for {stock.ticker}.{stock.exchange}"
+                        )
+                        continue
+
+                    # Extract stock info from ticker
+                    _, stock_info = TickerService.extract_models(ticker)
+                    stock_info.stock_id = stock.id
+
+                    # Update or insert stock info
+                    stock_info_repo.upsert(stock_info)
+
+                    print(f" updated (price: {stock_info.current_price:.2f})")
+                    total_updated += 1
+
+                except Exception as e:
+                    print(f" error: {e}")
+                    logger.error(
+                        f"Error refreshing price data for {stock.ticker}.{stock.exchange}: {e}"
+                    )
+
+            # Add delay between batches to respect API rate limits
+            if batch_num < total_batches:
+                delay = 5  # seconds
+                print(f"Waiting {delay} seconds before next batch...")
+                import time
+
+                time.sleep(delay)
+
+        print(f"Price refresh complete. Updated {total_updated} stocks.")
         return 0
 
-    def _refresh_splits(self, stock_id: int | None = None) -> int:
-        """Refresh stock split data."""
-        print("Refreshing stock splits...")
-        # TODO: implement refreshing stock splits using container services
-        print("Stock split refresh has not yet been implemented.")
+    def _refresh_splits(
+        self,
+        stock_repo: StockRepository,
+        corp_action_repo: CorporateActionRepository,
+        stock_id: int | None = None,
+    ) -> int:
+        """Refresh stock split and corporate action data."""
+        print("Refreshing stock splits and corporate actions...")
+
+        # Get stocks to refresh
+        if stock_id:
+            stock: Stock | None = stock_repo.get_by_id(stock_id)
+            if not stock:
+                logger.error(f"Stock with ID {stock_id} not found")
+                print(f"Error: Stock with ID {stock_id} not found")
+                return 1
+            stocks: list[Stock] = [stock]
+            logger.info(f"Refreshing splits for single stock ID: {stock_id}")
+        else:
+            stocks = stock_repo.get_all()
+            logger.info(f"Refreshing splits for all {len(stocks)} stocks")
+
+        # Process stocks in batches to respect API limits
+        batch_size = 5
+        total_actions = 0
+
+        for i in range(0, len(stocks), batch_size):
+            batch: list[Stock] = stocks[i : i + batch_size]
+            batch_num: int = i // batch_size + 1
+            total_batches: int = (len(stocks) - 1) // batch_size + 1
+
+            print(f"Processing batch {batch_num}/{total_batches} ({len(batch)} stocks)...")
+
+            for stock in batch:
+                if not stock.id:
+                    logger.warning(f"Skipping stock without ID: {stock.ticker}.{stock.exchange}")
+                    continue
+
+                print(f"Checking splits for {stock.ticker}.{stock.exchange}...", end="")
+                try:
+                    # Get existing corporate actions for this stock
+                    existing_actions: list[CorporateAction] = corp_action_repo.get_by_stock_id(
+                        stock.id
+                    )
+                    existing_dates = {action.action_date for action in existing_actions}
+
+                    ticker: Ticker | None = TickerService.get_ticker_for_stock(stock)
+
+                    if not ticker:
+                        print(" failed (invalid ticker)")
+                        logger.error(
+                            f"Failed to get valid ticker for {stock.ticker}.{stock.exchange}"
+                        )
+                        continue
+
+                    # Fetch splits from yfinance
+                    # TODO: This is a simplified example - to implement the actual yfinance split data extraction
+                    try:
+                        splits = ticker.splits  # This is a pandas Series from yfinance
+                        if splits.empty:
+                            print(" no splits found.")
+                            continue
+
+                        new_actions = 0
+
+                        # Process each split
+                        for split_date, ratio in splits.items():
+                            split_date = split_date.date()
+
+                            # Skip if we already have this action
+                            if split_date in existing_dates:
+                                continue
+
+                            action: CorporateAction = CorporateAction(
+                                id=None,
+                                stock_id=stock.id,
+                                action_type="split",
+                                action_date=split_date,
+                                ratio=float(ratio),
+                                target_stock_id=stock.id,  # Same stock for splits
+                            )
+
+                            _ = corp_action_repo.insert(action)
+                            new_actions += 1
+
+                        print(f" found {new_actions} new splits")
+                        total_actions += new_actions
+
+                    except AttributeError:
+                        print(" no split data available")
+                        logger.warning(
+                            f"No split data available for {stock.ticker}.{stock.exchange}"
+                        )
+
+                except Exception as e:
+                    print(f" error: {e}")
+                    logger.error(
+                        f"Error refreshing splits for {stock.ticker}.{stock.exchange}: {e}"
+                    )
+
+            # Add delay between batches to respect API rate limits
+            if batch_num < total_batches:
+                delay = 5  # seconds
+                print(f"Waiting {delay} seconds before next batch...")
+                import time
+
+                time.sleep(delay)
+
+        print(f"Split refresh complete. Found {total_actions} new corporate actions.")
         return 0
