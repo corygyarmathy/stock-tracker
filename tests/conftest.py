@@ -31,31 +31,10 @@ def ensure_test_environment():
         _ = os.environ.pop("ENV", None)
 
 
-@pytest.fixture(scope="function", autouse=True)
-def reset_app_config():
-    """Reset AppConfig singleton before and after each test."""
-    # Reset the singleton before test
-    if hasattr(AppConfig, "_instance") and AppConfig._instance is not None:
-        AppConfig._reset()
-
-    yield
-
-    # Reset after test
-    if hasattr(AppConfig, "_instance") and AppConfig._instance is not None:
-        AppConfig._reset()
-
-
-# TODO: investigate inverting this into every test, rather than manually adding it
-# Seems to be required for every unit test anyway... see what the ramifications might be
-@pytest.fixture
+@pytest.fixture(scope="function")
 def app_config() -> AppConfig:
-    """
-    Load the AppConfig through the normal ConfigLoader mechanism using
-    the actual config files.
-    """
-    config: AppConfig = ConfigLoader.load_app_config()
-    AppConfig.set(instance=config)
-    return AppConfig.get()
+    """Load a test configuration"""
+    return ConfigLoader.load_app_config()
 
 
 @pytest.fixture
@@ -68,9 +47,9 @@ def mock_yfinance_session():
 
 
 @pytest.fixture
-def test_db():
+def test_db(app_config: AppConfig):
     """Create an in-memory test database. Prevents the need to reset the DB in-between tests."""
-    db_path: Path = AppConfig.get().db_path
+    db_path: Path = app_config.db_path
     with Database(db_path) as db:
         db.create_tables_if_not_exists()
         yield db

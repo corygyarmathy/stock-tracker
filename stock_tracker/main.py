@@ -85,7 +85,6 @@ def main() -> int:
     # Load the configuration
     try:
         config: AppConfig = ConfigLoader.load_app_config(overrides=overrides)
-        AppConfig.set(config)
     except Exception as e:
         # Print error and exit if config loading fails
         print(f"Error loading configuration: {e}", file=sys.stderr)
@@ -100,7 +99,7 @@ def main() -> int:
             db.create_tables_if_not_exists()
 
             # Create service container object
-            container = ServiceContainer(config, db)
+            container: ServiceContainer = ServiceContainer(config, db)
 
             # Find and instantiate the requested command
             command_classes: dict[str, type[Command]] = CommandRegistry.get_commands()

@@ -52,37 +52,6 @@ class AppConfig:
     yf_cache_path: str
     yf_cache_expiry: int
 
-    _instance: ClassVar[Self | None] = None  # private singleton instance
-
-    @classmethod
-    def get(cls) -> Self:
-        """Return the current singleton instance, or raise if not set."""
-        if cls._instance is None:
-            raise RuntimeError("AppConfig has not been initialised.")
-        return cls._instance
-
-    @classmethod
-    def set(cls, instance: Self) -> None:
-        """Set the singleton instance from an AppConfig object. Can only be set once."""
-        if cls._instance is not None:
-            logger.error(f"AppConfig.set() called when AppConfig instance was already set.")
-            raise RuntimeError("AppConfig.set() called when AppConfig instance was already set.")
-        logger.debug("Setting AppConfig._instance")
-        cls._instance = instance
-
-    @classmethod
-    def _reset(cls) -> None:
-        """Testing-only method: reset the singleton instance."""
-        if os.getenv("ENV") != "test":
-            logger.error(
-                "AppConfig._reset() called when ENV != test. Should only be used in testing ENV."
-            )
-            raise RuntimeError(
-                "AppConfig._reset() called when ENV != test. Should only be used in testing ENV."
-            )
-        logger.debug("Resetting AppConfig._instance")
-        cls._instance = None
-
 
 # TODO: convert into generic ConfigLoader, not just for AppConfig
 class ConfigLoader:
