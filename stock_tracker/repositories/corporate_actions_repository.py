@@ -13,6 +13,9 @@ class CorporateActionRepository:
         self.db: Database = db
 
     def insert(self, action: CorporateAction) -> int:
+        logger.debug(
+            f"Inserting CorporateAction type: {CorporateAction.action_type} for stock ID {CorporateAction.stock_id} into DB."
+        )
         cursor: Cursor = self.db.execute(
             """
             INSERT INTO corporate_actions (stock_id, action_type, action_date, ratio, target_stock_id)
