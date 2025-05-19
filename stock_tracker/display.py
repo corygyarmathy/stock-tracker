@@ -92,3 +92,39 @@ def display_performance(performance: PortfolioPerformance) -> None:
         bottom_stocks = sorted(sorted_stocks, key=lambda x: x.total_return_percentage)[:3]
         for i, stock in enumerate(bottom_stocks, 1):
             print(f"{i}. {stock.ticker}.{stock.exchange}: {stock.total_return_percentage:.2f}%")
+
+
+def display_dividend_report(dividend_data) -> None:
+    """Display formatted dividend report."""
+    # Print report header
+    print("\n╔══════════════════════════════════════════════════════════╗")
+    print("║                    DIVIDEND REPORT                        ║")
+    print("╠════════════╦═══════════╦══════════════╦══════════════════╣")
+    print("║ Stock      ║ Currency  ║ Total Amount ║ Last Ex-Date     ║")
+    print("╠════════════╬═══════════╬══════════════╬══════════════════╣")
+
+    total_amount = 0.0
+
+    # Process each stock
+    for item in dividend_data:
+        stock = item["stock"]
+        stock_total = item["total_amount"]
+        last_date = item["last_ex_date"]
+
+        # Add to the grand total (note: simple approach, ignoring currency conversion)
+        total_amount += stock_total
+
+        # Format the stock ticker for display
+        ticker_display = f"{stock.ticker}.{stock.exchange}"
+        if len(ticker_display) > 10:
+            ticker_display = ticker_display[:9] + "…"
+
+        # Print the stock's dividend info
+        print(
+            f"║ {ticker_display:<10} ║ {stock.currency:<9} ║ {stock_total:10.2f} ║ {last_date.strftime('%Y-%m-%d'):>16} ║"
+        )
+
+    # Print footer with total
+    print("╠════════════╩═══════════╬══════════════╬══════════════════╣")
+    print(f"║ TOTAL                  ║ {total_amount:10.2f} ║                  ║")
+    print("╚═══════════════════════════════════════════════════════════╝")
