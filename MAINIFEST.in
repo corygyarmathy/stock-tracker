@@ -1,0 +1,3 @@
+include README.md include pyproject.toml include LICENSE include config/*.yaml include .env.prod.example include .env.test.example include .env.example
+
+recursive-exclude tests * recursive-exclude pycache * recursive-exclude * *.py[cod]
