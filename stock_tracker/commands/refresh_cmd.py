@@ -61,25 +61,30 @@ class RefreshCommand(Command):
         )
         dividend_service: DividendService = self.container.get_service(DividendService)
 
+        result = 0  # Track overall success (0 = success, non-zero = failure)
+
         # Refresh dividends
         if refresh_type in ["dividends", "all"]:
-            return self._refresh_dividends(dividend_service, stock_repo, dividend_repo, stock_id)
+            dividend_result = self._refresh_dividends(
+                dividend_service, stock_repo, dividend_repo, stock_id
+            )
+            result = result or dividend_result  # Update result if there was an error
 
         # Refresh stock prices
-        print("check if refresh price")
         if refresh_type in ["prices", "all"]:
-            print("REFRESH PRICE")
-            return self._refresh_prices(
+            price_result = self._refresh_prices(
                 stock_repo=stock_repo, stock_info_repo=stock_info_repo, stock_id=stock_id
             )
+            result = result or price_result  # Update result if there was an error
 
         # Refresh splits
         if refresh_type in ["splits", "all"]:
-            return self._refresh_splits(
+            splits_result = self._refresh_splits(
                 stock_repo=stock_repo, corp_action_repo=corp_action_repo, stock_id=stock_id
             )
+            result = result or splits_result  # Update result if there was an error
 
-        return 0
+        return result
 
     def _refresh_dividends(
         self,
