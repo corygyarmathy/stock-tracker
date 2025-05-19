@@ -9,7 +9,6 @@ from typing import (
     Any,
     ClassVar,
     Self,
-    get_origin,
     get_type_hints,
 )
 
@@ -156,36 +155,6 @@ class ConfigLoader:
             return ConfigLoader._dict_to_config(merged_config, AppConfig)
         except TypeError as e:
             raise TypeError(f"{e}")
-
-    @staticmethod
-    def build_arg_parser(config_class: type[AppConfig]) -> argparse.ArgumentParser:
-        """Dynamically build an ArgumentParser based on a dataclass like AppConfig."""
-        parser: argparse.ArgumentParser = argparse.ArgumentParser(description="Stock Tracker CLI")
-
-        for field in fields(config_class):
-            # Skip private fields and ClassVars
-            if field.name.startswith("_") or get_origin(field.type) is ClassVar:
-                continue
-
-            arg_name: str = f"--{field.name.replace('_', '-')}"  # eg. db_path -> --db-path
-            arg_type = field.type
-
-            # Optional:  make type adjustments here as needed
-            if arg_type is Path:
-                arg_type = str  # Accept paths as strings from CLI
-            elif arg_type is bool:
-                # Special handling for booleans: use 'store_true' action
-                _ = parser.add_argument(arg_name, action="store_true", help=f"Enable {field.name}")
-                continue
-
-            _ = parser.add_argument(
-                arg_name,
-                type=arg_type,
-                default=None,  # So you can know if user passed it
-                help=f"Override {field.name}",
-            )
-
-        return parser
 
     @staticmethod
     def args_to_overrides(args: argparse.Namespace) -> dict[str, Any]:

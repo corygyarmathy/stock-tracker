@@ -16,6 +16,7 @@ from stock_tracker.commands.base import Command, CommandRegistry
 from stock_tracker.config import AppConfig, ConfigLoader
 from stock_tracker.container import ServiceContainer
 from stock_tracker.db import Database
+from stock_tracker.utils.parser_utils import add_config_options
 from stock_tracker.utils.setup_logging import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -40,28 +41,19 @@ def load_commands() -> None:
 
 
 def create_parser() -> argparse.ArgumentParser:
-    """
-    Create the argument parser with all commands and options.
-
-    Returns:
-        Configured ArgumentParser object
-    """
-    # Create the base parser
+    """Create the argument parser with all commands and options."""
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description="Stock Tracker CLI",
         epilog="Use 'stock-tracker COMMAND --help' for more information on a command.",
     )
 
     # Add global options (these apply to all commands)
-    _ = parser.add_argument("--log-level", help="Set logging level")
-    _ = parser.add_argument("--db-path", type=str, help="Database path")
+    add_config_options(parser)  # Add all config options as global arguments only
 
     # Create subparsers for different commands
-    subparsers: argparse._SubParsersAction[argparse.ArgumentParser] = parser.add_subparsers(
-        dest="command", help="Command to run"
-    )
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
-    # Register all command parsers
+    # Register all command parsers (without config options)
     for name, command_class in CommandRegistry.get_commands().items():
         command_class.setup_parser(subparsers)
 
