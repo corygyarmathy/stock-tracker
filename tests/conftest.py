@@ -141,3 +141,10 @@ def config_with_cli_overrides() -> Callable[..., AppConfig]:
         return config
 
     return _config_with_overrides
+
+
+@pytest.fixture(autouse=True)
+def no_sleep():
+    """Patch time.sleep for all tests to avoid unnecessary waiting."""
+    with patch("time.sleep", return_value=None):
+        yield
