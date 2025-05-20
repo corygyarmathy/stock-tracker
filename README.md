@@ -2,6 +2,118 @@
 
 I am writing a stock tracker project in Python. This is a CLI tool to report on stock movement.
 
+Stock Tracker - Installation and Usage Guide
+
+## Installation
+
+### Option 1: Install from PyPI (Recommended)
+
+```bash
+pip install stock-tracker
+```
+
+### Option 2: Install from source
+
+```bash
+git clone https://github.com/yourusername/stock-tracker.git 
+cd stock-tracker
+pip install .
+```
+
+## Configuration
+
+Stock Tracker works out of the box with sensible defaults. You don't need to create any config files
+to get started!
+Default Configuration
+The default configuration automatically:
+• Creates a database in your current directory ( `stocktracker.db` )
+• Reads CSV files from your current directory ( `import.csv` )
+• Sets up logging with reasonable defaults
+
+### Customising Configuration
+
+There are two ways to customize the configuration:
+
+#### Option 1: Custom Configuration File
+
+Create a YAML configuration file with your preferred settings:
+
+```yaml
+# ~/.stock-tracker-config.yaml
+db_path: ~/.stock--tracker/stocktracker.db
+csv_path: ~/import.csv
+log_file_path: ~/stock-tracker/logs/app.log
+log_level: INFO
+yf_max_requests: 2
+yf_request_interval_seconds: 10
+```
+
+Then use it with the `--config-file` option:
+
+```bash
+stock-tracker --config-file ~/.stock-tracker-config.yaml report performance
+```
+
+Run `stock-tracker --help` to see all available options.
+
+### Configuration Locations (Automatic Discovery)
+
+If you don't specify a configuration file, Stock Tracker will look for configuration files in these locations (in order):
+
+1. `./config/` (Current directory)
+2. `~/.stock-tracker/config/` (User's home directory)
+3. `/etc/stock-tracker/config/` (System-wide configuration)
+
+The configuration files should be named:
+
+- `config.base.yaml` - Base configuration
+- `config.prod.yaml` - Production configuration
+
+### Command-Line Options
+
+Each configuration option can be overridden via command-line arguments:
+
+```bash
+stock-tracker --db-path ~/my-stocks.db --log-level DEBUG report performance
+```
+
+Available Commands
+Import Stock Orders
+
+```bash
+stock-tracker import path/to/orders.csv
+```
+
+Refresh Stock Data
+
+```bash
+stock-tracker refresh prices
+stock-tracker refresh dividends
+stock-tracker refresh all
+```
+
+Generate Reports
+
+```bash
+stock-tracker report performance
+stock-tracker report dividends
+```
+
+Interactive Mode
+
+```bash
+stock-tracker interactive
+```
+
+## CSV Format for Stock Orders
+
+Your import CSV should have the following format:
+
+```csv
+datetime,exchange,ticker,quantity,price_paid,fee,note
+2023-01-15 9:00:00,NASDAQ,AAPL,10,445.92,4.99,Initial purchase
+```
+
 ## Features
 
 - CLI application
