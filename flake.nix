@@ -50,7 +50,6 @@
         pythonPackagesList = with unstablePkgs.python3Packages; [
           pytest
           pytest-mock
-          python-dotenv
           yfinance
           pyyaml
           pandas
@@ -76,6 +75,7 @@
           shellHook = ''
             export PYTHON_DOTENV_LOAD_ALL=1
             export PYTHONPATH="$PWD:$PYTHONPATH"
+            export STOCK_TRACKER_ENV="dev"
             echo "🐍 Python flake dev shell ready"
           '';
         };

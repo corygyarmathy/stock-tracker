@@ -10,7 +10,6 @@ requires-python = ">=3.10"
 dependencies = [
   "pytest",
   "pytest-mock",
-  "python-dotenv",
   "yfinance",
   "pyyaml",
   "pandas",

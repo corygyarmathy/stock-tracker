@@ -16,25 +16,16 @@ from stock_tracker.repositories.stock_repository import StockRepository
 
 
 @pytest.fixture(scope="session", autouse=True)
-def ensure_test_environment():
+def env():
     """Ensure we're using the test environment for all tests."""
-    # Use os.environ directly instead of monkeypatch for session-scoped fixture
-    original_env: str | None = os.environ.get("ENV")
-    os.environ["ENV"] = "test"
-
-    yield
-
-    # Restore original environment variable if it existed
-    if original_env is not None:
-        os.environ["ENV"] = original_env
-    else:
-        _ = os.environ.pop("ENV", None)
+    env: str = "test"
+    return env
 
 
 @pytest.fixture(scope="function")
-def app_config() -> AppConfig:
+def app_config(env: str) -> AppConfig:
     """Load a test configuration"""
-    return ConfigLoader.load_app_config()
+    return ConfigLoader.load_app_config(env)
 
 
 @pytest.fixture
@@ -121,8 +112,8 @@ def isolated_config_environment(tmp_path: Path):
     original_load_merged_yaml = ConfigLoader._load_merged_yaml
 
     # Define a wrapper that uses the test directory
-    def custom_load_merged_yaml(env, config_dir=None):
-        return original_load_merged_yaml(env, test_config_dir)
+    def custom_load_merged_yaml(env: str, config_dir: Path | None = None, file: Path | None = None):
+        return original_load_merged_yaml(env, config_dir=test_config_dir)
 
     # Patch ConfigLoader to use our test directory
     with patch(
@@ -135,9 +126,9 @@ def isolated_config_environment(tmp_path: Path):
 def config_with_cli_overrides() -> Callable[..., AppConfig]:
     """Fixture for testing CLI argument overrides."""
 
-    def _config_with_overrides(overrides: dict[str, Any]) -> AppConfig:
+    def _config_with_overrides(env: str, overrides: dict[str, Any]) -> AppConfig:
         """Load config with the specified CLI overrides."""
-        config: AppConfig = ConfigLoader.load_app_config(overrides)
+        config: AppConfig = ConfigLoader.load_app_config(env=env, overrides=overrides)
         return config
 
     return _config_with_overrides
